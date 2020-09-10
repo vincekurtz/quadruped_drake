@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 from pydrake.all import *
+from controllers.basic_controller import BasicController
 import os
 
 # Drake only loads things relative to the drake path, so we have to do some hacking
@@ -12,7 +13,7 @@ robot_description_file = "drake/" + os.path.relpath(robot_description_path, star
 robot_urdf  = FindResourceOrThrow(robot_description_file)
 builder = DiagramBuilder()
 scene_graph = builder.AddSystem(SceneGraph())
-dt = 5e-3
+dt = 1e-3
 plant = builder.AddSystem(MultibodyPlant(time_step=dt))
 plant.RegisterAsSourceForSceneGraph(scene_graph)
 quad = Parser(plant=plant).AddModelFromFile(robot_urdf,"quad")
@@ -35,6 +36,10 @@ plant.RegisterVisualGeometry(
         "ground_visual",
         np.array([0.5,0.5,0.5,0.0]))    # Color set to be completely transparent
 
+# Turn off gravity
+#g = plant.mutable_gravity_field()
+#g.set_gravity_vector([0,0,0])
+
 plant.Finalize()
 assert plant.geometry_source_is_registered()
 
@@ -47,9 +52,11 @@ builder.Connect(
         scene_graph.get_source_pose_port(plant.get_source_id()))
 
 # Hook up a controller
-controller = builder.AddSystem(ConstantVectorSource(np.zeros(plant.num_actuators())))
+controller = builder.AddSystem(BasicController(plant,dt))
 builder.Connect(controller.get_output_port(),
                 plant.get_actuation_input_port(quad))
+builder.Connect(plant.get_state_output_port(),
+                controller.get_input_port(0))
 
 # Set up the Visualizer
 ConnectDrakeVisualizer(builder=builder, scene_graph=scene_graph)
@@ -72,13 +79,13 @@ simulator.set_publish_every_time_step(False)
 
 # Set initial states
 plant_context = diagram.GetMutableSubsystemContext(plant, diagram_context)
-q0 = np.zeros(plant.num_positions())
-q0[3] = 1.0  # make a valid quaternion
-q0[6] = 1.0  # z position of base frame
+q0 = np.asarray([ 0.0, 0.0, 0.0, 1.0,     # base orientation
+                  0.0, 0.0, 0.7,          # base position
+                  0.0, 0.0, 0.0, 0.0,     # ad/ab
+                  0.5, 0.5,-0.5,-0.5,     # hip
+                 -0.8,-0.8, 0.8, 0.8])    # knee
 qd0 = np.zeros(plant.num_velocities())
 plant.SetPositions(plant_context,q0)
 plant.SetVelocities(plant_context,qd0)
 
-print(plant.num_actuators())
-
-simulator.AdvanceTo(5.00)
+simulator.AdvanceTo(2.0)

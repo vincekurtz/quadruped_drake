@@ -14,14 +14,12 @@
             </geometry>
             <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.0"/>
         </visual>
-        <!--
         <collision>
             <geometry>
                 <box size="0.23 0.19 0.1"/>
             </geometry>
             <origin rpy="0 0 0" xyz="0 0 0"/>
         </collision>
-        -->
     </link>
 
     <!--!!!!!!!!!!!! Front Left Leg !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!-->
@@ -107,7 +105,7 @@
         <visual>
             <geometry>
                 <!---<mesh filename="meshes/mini_lower_link.obj"/>-->
-                <cylinder length ="0.19" radius = "0.015"/>
+                <cylinder length ="0.19" radius = "0.010"/>
             </geometry>
             <origin rpy="0.0 3.141592 0.0" xyz="0.0 0.0 -0.095"/>
         </visual>
@@ -211,7 +209,7 @@
         <visual>
             <geometry>
                 <!--<mesh filename="meshes/mini_lower_link.obj"/>-->
-                <cylinder length ="0.19" radius = "0.015"/>
+                <cylinder length ="0.19" radius = "0.010"/>
             </geometry>
             <origin rpy="0.0 3.141592 0.0" xyz="0.0 0.0 -0.095"/>
         </visual>
@@ -287,7 +285,7 @@
             <geometry>
                 <mesh filename="meshes/mini_upper_link.obj"/>
             </geometry>
-            <origin rpy="0.0 -1.5708 0.0" xyz="0.0 0.0 0.0"/>
+            <origin rpy="0.0 -1.5708 3.1415" xyz="0.0 0.0 0.0"/>
         </visual>
         <!--
         <collision>
@@ -315,7 +313,7 @@
         <visual>
             <geometry>
                 <!--mesh filename="meshes/mini_lower_link.obj"/-->
-                <cylinder length ="0.19" radius = "0.015"/>
+                <cylinder length ="0.19" radius = "0.010"/>
             </geometry>
             <origin rpy="0.0 3.141592 0.0" xyz="0.0 0.0 -0.095"/>
         </visual>
@@ -391,7 +389,7 @@
             <geometry>
                 <mesh filename="meshes/mini_upper_link.obj"/>
             </geometry>
-            <origin rpy="0.0 -1.5708 0.0" xyz="0.0 0.0 0.0"/>
+            <origin rpy="0.0 -1.5708 3.1415" xyz="0.0 0.0 0.0"/>
         </visual>
         <!--
         <collision>
@@ -419,7 +417,7 @@
         <visual>
             <geometry>
                 <!--mesh filename="meshes/mini_lower_link.obj"/-->
-                <cylinder length ="0.19" radius = "0.015"/>
+                <cylinder length ="0.19" radius = "0.010"/>
             </geometry>
             <origin rpy="0.0 3.141592 0.0" xyz="0 0 -0.095"/>
         </visual>

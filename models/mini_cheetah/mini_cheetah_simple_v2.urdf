@@ -3,8 +3,8 @@
 
 
 
-<!--!!!!!!!!!!!!!!!!!!BODY!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!-->
-  <link name="body">
+    <!--!!!!!!!!!!!!!!!!!!BODY!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!-->
+    <link name="body">
         <inertial>
             <mass value="3.3"/>
             <origin xyz="0.0 0.0 0.0"/>
@@ -12,15 +12,15 @@
         </inertial>
         <visual>
             <geometry>
-              <!--mesh filename="meshes/mini_body.obj"/!!!-->
-	        <box size="0.23 0.18 0.1"/>
+                <!--mesh filename="meshes/mini_body.obj"/!!!-->
+                <box size="0.23 0.18 0.1"/>
             </geometry>
             <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.0"/>
         </visual>
         <collision>
             <geometry>
-              <!--mesh filename="meshes/mini_body.obj"/-->
-	      <box size="0.23 0.18 0.1"/>
+                <!--mesh filename="meshes/mini_body.obj"/-->
+                <box size="0.23 0.18 0.1"/>
             </geometry>
             <origin rpy="0 0 0" xyz="0 0 0"/>
         </collision>
@@ -28,13 +28,13 @@
 
 
 
-<!--!!!!!!!!!!!! Front Left Leg !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!-->
+    <!--!!!!!!!!!!!! Front Left Leg !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!-->
     <joint name="torso_to_abduct_fl_j" type="continuous">
         <axis xyz="1 0 0"/>
         <origin rpy="0 0 0" xyz="0.19 0.049 0.0"/>
         <parent link="body"/>
         <child link="abduct_fl"/>
-	<limit effort="18" lower="-1.6" upper="1.6" velocity="40"/>
+        <limit effort="18" lower="-1.6" upper="1.6" velocity="40"/>
     </joint>
     <link name="abduct_fl">
         <inertial>
@@ -45,34 +45,34 @@
         </inertial>
         <visual>
             <geometry>
-              <!--mesh filename="meshes/mini_abad.obj"/-->
-	      <cylinder length ="0.01" radius = "0.0475"/>
+                <!--mesh filename="meshes/mini_abad.obj"/-->
+                <cylinder length ="0.01" radius = "0.0475"/>
             </geometry>
             <origin rpy="0. 1.5708 -1.5708" xyz="-0.055 0.0 0.0"/>
         </visual>
-	<visual>
+        <visual>
             <geometry>
-              <!--mesh filename="meshes/mini_abad.obj"/-->
-	      <cylinder length ="0.06" radius = "0.0425"/>
+                <!--mesh filename="meshes/mini_abad.obj"/-->
+                <cylinder length ="0.06" radius = "0.0425"/>
             </geometry>
             <!--origin rpy="3.141592 0.0 1.5708" xyz="-0.055 0.0 0.0"/-->
-	    <origin rpy="1.5708 0.0 0.0" xyz="0.0 0.0 0.0"/>
+            <origin rpy="1.5708 0.0 0.0" xyz="0.0 0.0 0.0"/>
         </visual>
         <collision>
             <geometry>
-              <!--mesh filename="meshes/mini_abad.obj"/-->
-	      <cylinder length ="0.01" radius = "0.0475"/>
+                <!--mesh filename="meshes/mini_abad.obj"/-->
+                <cylinder length ="0.01" radius = "0.0475"/>
             </geometry>
             <!--origin rpy="0 0 -1.5708" xyz="-0.055 0 0"/-->
-	    <origin rpy="0 1.5708 -1.5708" xyz="-0.055 0.0 0.0"/>
+            <origin rpy="0 1.5708 -1.5708" xyz="-0.055 0.0 0.0"/>
         </collision>
-	<collision>
+        <collision>
             <geometry>
-              <!--mesh filename="meshes/mini_abad.obj"/-->
-	      <cylinder length ="0.06" radius = "0.0425"/>
+                <!--mesh filename="meshes/mini_abad.obj"/-->
+                <cylinder length ="0.06" radius = "0.0425"/>
             </geometry>
             <!--origin rpy="0 0 -1.5708" xyz="-0.055 0 0"/-->
-	    <origin rpy="1.5708 0.0 0.0" xyz="0.0 0.0 0.0"/>
+            <origin rpy="1.5708 0.0 0.0" xyz="0.0 0.0 0.0"/>
         </collision>
     </link>
 
@@ -81,7 +81,7 @@
         <origin rpy="0.0 0.0 0.0" xyz="0.0 0.062 0.00"/>
         <parent link="abduct_fl"/>
         <child link="thigh_fl"/>
-	<limit effort="18" lower="-2.6" upper="2.6" velocity="40"/>
+        <limit effort="18" lower="-2.6" upper="2.6" velocity="40"/>
     </joint>
     <link name="thigh_fl">
         <inertial>
@@ -92,15 +92,15 @@
         </inertial>
         <visual>
             <geometry>
-              <!--mesh filename="meshes/mini_upper_link.obj"/-->
-	      <cylinder length ="0.17" radius = "0.015"/>
+                <!--mesh filename="meshes/mini_upper_link.obj"/-->
+                <cylinder length ="0.17" radius = "0.015"/>
             </geometry>
             <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 -0.105"/>
         </visual>
         <collision>
             <geometry>
-              <!--mesh filename="meshes/mini_upper_link.obj"/-->
-	      <cylinder length ="0.17" radius = "0.015"/>
+                <!--mesh filename="meshes/mini_upper_link.obj"/-->
+                <cylinder length ="0.17" radius = "0.015"/>
             </geometry>
             <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 -0.105"/>
         </collision>
@@ -111,7 +111,7 @@
         <origin rpy="0.0 0 0.0" xyz="0.0 0.0 -0.209"/>
         <parent link="thigh_fl"/>
         <child link="shank_fl"/>
-	<limit effort="26" lower="-2.6" upper="2.6" velocity="26"/>
+        <limit effort="26" lower="-2.6" upper="2.6" velocity="26"/>
     </joint>
     <link name="shank_fl">
         <inertial>
@@ -121,44 +121,23 @@
         </inertial>
         <visual>
             <geometry>
-              <!--mesh filename="meshes/mini_lower_link.obj"/-->
-	      <cylinder length ="0.15" radius = "0.01"/>
+                <!--mesh filename="meshes/mini_lower_link.obj"/-->
+                <cylinder length ="0.15" radius = "0.01"/>
             </geometry>
             <origin rpy="0.0 3.141592 0.0" xyz="0.0 0.0 -0.095"/>
         </visual>
         <collision>
             <geometry>
-              <!--mesh filename="meshes/mini_lower_link.obj"/-->
-	      <cylinder length ="0.15" radius = "0.01"/>
+                <!--mesh filename="meshes/mini_lower_link.obj"/-->
+                <cylinder length ="0.15" radius = "0.01"/>
             </geometry>
             <origin rpy="0.0 3.141592 0.0" xyz="0 0 -0.095"/>
         </collision>
     </link>
-    <!-- Adapter to Foot joint -->
-    <joint name="fixed_shank_to_foot" type="fixed">
-        <parent link="shank_fl"/>
-        <child link="foot_fl"/>
-        <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 -0.19"/>
-    </joint>
-    <link name="foot_fl">
-	<visual>
-            <geometry>
-              <sphere radius = "0.0175"/>
-            </geometry>
-            <origin rpy="0.0 3.141592 0.0" xyz="0.0 0.0 0.0"/>
-        </visual>
-	<collision>
-            <geometry>
-              <!--mesh filename="meshes/mini_lower_link.obj"/-->
-	      <sphere radius = "0.0175"/>
-            </geometry>
-            <origin rpy="0.0 3.141592 0.0" xyz="0 0 0"/>
-        </collision>
-    </link>
-	
 
 
-    
+
+
     <!--!!!!!!!!!!!! Front Right Leg !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!-->
 
     <!--!!!!Joint!!!!!!!!!!!!-->
@@ -167,7 +146,7 @@
         <origin rpy="0 0 0" xyz="0.19 -0.049 0.0"/>
         <parent link="body"/>
         <child link="abduct_fr"/>
-	<limit effort="18" lower="-1.6" upper="1.6" velocity="40"/>
+        <limit effort="18" lower="-1.6" upper="1.6" velocity="40"/>
     </joint>
     <link name="abduct_fr">
         <inertial>
@@ -178,31 +157,31 @@
         </inertial>
         <visual>
             <geometry>
-              <!--mesh filename="meshes/mini_abad.obj"/-->
-	      <cylinder length ="0.01" radius = "0.0475"/>
+                <!--mesh filename="meshes/mini_abad.obj"/-->
+                <cylinder length ="0.01" radius = "0.0475"/>
             </geometry>
             <!--origin rpy="3.141592 0.0 1.5708" xyz="-0.055 0.0 0.0"/-->
-	    <origin rpy="3.141592 1.5708 1.5708" xyz="-0.055 0.0 0.0"/>
+            <origin rpy="3.141592 1.5708 1.5708" xyz="-0.055 0.0 0.0"/>
         </visual>
-	<visual>
+        <visual>
             <geometry>
-              <!--mesh filename="meshes/mini_abad.obj"/-->
-	      <cylinder length ="0.06" radius = "0.0425"/>
+                <!--mesh filename="meshes/mini_abad.obj"/-->
+                <cylinder length ="0.06" radius = "0.0425"/>
             </geometry>
             <!--origin rpy="3.141592 0.0 1.5708" xyz="-0.055 0.0 0.0"/-->
-	    <origin rpy="1.5708 0.0 0.0" xyz="0.0 0.0 0.0"/>
+            <origin rpy="1.5708 0.0 0.0" xyz="0.0 0.0 0.0"/>
         </visual>
         <collision>
             <geometry>
-              <!--mesh filename="meshes/mini_abad.obj"/-->
-	      <cylinder length ="0.01" radius = "0.0475"/>
+                <!--mesh filename="meshes/mini_abad.obj"/-->
+                <cylinder length ="0.01" radius = "0.0475"/>
             </geometry>
             <origin rpy="3.141592 1.5708 1.5708" xyz="-0.055 0 0"/>
         </collision>
-	<collision>
+        <collision>
             <geometry>
-              <!--mesh filename="meshes/mini_abad.obj"/-->
-	      <cylinder length ="0.06" radius = "0.0425"/>
+                <!--mesh filename="meshes/mini_abad.obj"/-->
+                <cylinder length ="0.06" radius = "0.0425"/>
             </geometry>
             <origin rpy="1.5708 0.0 0.0" xyz="-0.055 0 0"/>
         </collision>
@@ -213,7 +192,7 @@
         <origin rpy="0.0 0.0 0.0" xyz="0.0 -0.062 0.00"/>
         <parent link="abduct_fr"/>
         <child link="thigh_fr"/>
-	<limit effort="18" lower="-2.6" upper="2.6" velocity="40"/>
+        <limit effort="18" lower="-2.6" upper="2.6" velocity="40"/>
     </joint>
     <link name="thigh_fr">
         <inertial>
@@ -224,15 +203,15 @@
         </inertial>
         <visual>
             <geometry>
-              <!--mesh filename="meshes/mini_upper_link.obj"/-->
-	      <cylinder length ="0.17" radius = "0.015"/>
+                <!--mesh filename="meshes/mini_upper_link.obj"/-->
+                <cylinder length ="0.17" radius = "0.015"/>
             </geometry>
             <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 -0.105"/>
         </visual>
         <collision>
             <geometry>
-              <!--mesh filename="meshes/mini_upper_link.obj"/-->
-	      <cylinder length ="0.17" radius = "0.015"/>
+                <!--mesh filename="meshes/mini_upper_link.obj"/-->
+                <cylinder length ="0.17" radius = "0.015"/>
             </geometry>
             <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 -0.105"/>
         </collision>
@@ -243,7 +222,7 @@
         <origin rpy="0.0 0 0.0" xyz="0.0 0.0 -0.209"/>
         <parent link="thigh_fr"/>
         <child link="shank_fr"/>
-	<limit effort="26" lower="-2.6" upper="2.6" velocity="26"/>
+        <limit effort="26" lower="-2.6" upper="2.6" velocity="26"/>
     </joint>
     <link name="shank_fr">
         <inertial>
@@ -253,53 +232,31 @@
         </inertial>
         <visual>
             <geometry>
-              <!--mesh filename="meshes/mini_lower_link.obj"/-->
-	      <cylinder length ="0.15" radius = "0.01"/>
+                <!--mesh filename="meshes/mini_lower_link.obj"/-->
+                <cylinder length ="0.15" radius = "0.01"/>
             </geometry>
             <origin rpy="0.0 3.141592 0.0" xyz="0.0 0.0 -0.095"/>
         </visual>
         <collision>
             <geometry>
-              <!--mesh filename="meshes/mini_lower_link.obj"/-->
-	      <cylinder length ="0.15" radius = "0.01"/>
+                <!--mesh filename="meshes/mini_lower_link.obj"/-->
+                <cylinder length ="0.15" radius = "0.01"/>
             </geometry>
             <origin rpy="0.0 3.141592 0.0" xyz="0.0 0.0 -0.095"/>
         </collision>
     </link>
 
-    <!-- Adapter to Foot joint -->
-    <joint name="fixed_shank_to_foot_fr" type="fixed">
-        <parent link="shank_fr"/>
-        <child link="foot_fr"/>
-        <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 -0.19"/>
-    </joint>
-
-    <link name="foot_fr">
-	<visual>
-            <geometry>
-              <sphere radius = "0.0175"/>
-            </geometry>
-            <origin rpy="0.0 3.141592 0.0" xyz="0.0 0.0 0.0"/>
-        </visual>
-	<collision>
-            <geometry>
-              <!--mesh filename="meshes/mini_lower_link.obj"/-->
-	       <sphere radius = "0.0175"/>
-            </geometry>
-            <origin rpy="0.0 3.141592 0" xyz="0.0 0.0 0"/>
-        </collision>
-    </link>
-	
 
 
 
-<!--!!!!!!!!!!!! Hind Left Leg !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!-->
+
+    <!--!!!!!!!!!!!! Hind Left Leg !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!-->
     <joint name="torso_to_abduct_hl_j" type="continuous">
         <axis xyz="1 0 0"/>
         <origin rpy="0 0 0" xyz="-0.19 0.049 0.0"/>
         <parent link="body"/>
         <child link="abduct_hl"/>
-	<limit effort="18" lower="-1.6" upper="1.6" velocity="40"/>
+        <limit effort="18" lower="-1.6" upper="1.6" velocity="40"/>
     </joint>
     <link name="abduct_hl">
         <inertial>
@@ -310,31 +267,31 @@
         </inertial>
         <visual>
             <geometry>
-              <!--mesh filename="meshes/mini_abad.obj"/-->
-	      <cylinder length ="0.01" radius = "0.0475"/>
+                <!--mesh filename="meshes/mini_abad.obj"/-->
+                <cylinder length ="0.01" radius = "0.0475"/>
             </geometry>
             <!--origin rpy="3.141592 0.0 -1.5708" xyz="0.055 0.0 0.0"/-->
-	    <origin rpy="3.141592 1.5708 -1.5708" xyz="0.055 0.0 0.0"/>
+            <origin rpy="3.141592 1.5708 -1.5708" xyz="0.055 0.0 0.0"/>
         </visual>
-	<visual>
+        <visual>
             <geometry>
-              <!--mesh filename="meshes/mini_abad.obj"/-->
-	      <cylinder length ="0.06" radius = "0.0425"/>
+                <!--mesh filename="meshes/mini_abad.obj"/-->
+                <cylinder length ="0.06" radius = "0.0425"/>
             </geometry>
             <!--origin rpy="3.141592 0.0 1.5708" xyz="-0.055 0.0 0.0"/-->
-	    <origin rpy="1.5708 0.0 0.0" xyz="0.0 0.0 0.0"/>
+            <origin rpy="1.5708 0.0 0.0" xyz="0.0 0.0 0.0"/>
         </visual>
         <collision>
             <geometry>
-              <!--mesh filename="meshes/mini_abad.obj"/-->
-	      <cylinder length ="0.01" radius = "0.0475"/>
+                <!--mesh filename="meshes/mini_abad.obj"/-->
+                <cylinder length ="0.01" radius = "0.0475"/>
             </geometry>
             <origin rpy="3.141592 1.5708 -1.5708" xyz="0.055 0 0"/>
         </collision>
-	<collision>
+        <collision>
             <geometry>
-              <!--mesh filename="meshes/mini_abad.obj"/-->
-	      <cylinder length ="0.06" radius = "0.0425"/>
+                <!--mesh filename="meshes/mini_abad.obj"/-->
+                <cylinder length ="0.06" radius = "0.0425"/>
             </geometry>
             <origin rpy="1.5708 0.0 0.0" xyz="0.0 0.0 0.0"/>
         </collision>
@@ -345,7 +302,7 @@
         <origin rpy="0.0 0.0 0.0" xyz="0.0 0.062 0.00"/>
         <parent link="abduct_hl"/>
         <child link="thigh_hl"/>
-	<limit effort="18" lower="-2.6" upper="2.6" velocity="40"/>
+        <limit effort="18" lower="-2.6" upper="2.6" velocity="40"/>
     </joint>
     <link name="thigh_hl">
         <inertial>
@@ -356,15 +313,15 @@
         </inertial>
         <visual>
             <geometry>
-              <!--mesh filename="meshes/mini_upper_link.obj"/-->
-	      <cylinder length ="0.17" radius = "0.015"/>
+                <!--mesh filename="meshes/mini_upper_link.obj"/-->
+                <cylinder length ="0.17" radius = "0.015"/>
             </geometry>
             <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 -0.105"/>
         </visual>
         <collision>
             <geometry>
-              <!--mesh filename="meshes/mini_upper_link.obj"/-->
-	      <cylinder length ="0.17" radius = "0.015"/>
+                <!--mesh filename="meshes/mini_upper_link.obj"/-->
+                <cylinder length ="0.17" radius = "0.015"/>
             </geometry>
             <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 -0.105"/>
         </collision>
@@ -375,7 +332,7 @@
         <origin rpy="0.0 0 0.0" xyz="0.0 0.0 -0.209"/>
         <parent link="thigh_hl"/>
         <child link="shank_hl"/>
-	<limit effort="26" lower="-2.6" upper="2.6" velocity="26"/>
+        <limit effort="26" lower="-2.6" upper="2.6" velocity="26"/>
     </joint>
     <link name="shank_hl">
         <inertial>
@@ -385,51 +342,29 @@
         </inertial>
         <visual>
             <geometry>
-              <!--mesh filename="meshes/mini_lower_link.obj"/-->
-	      <cylinder length ="0.15" radius = "0.01"/>
+                <!--mesh filename="meshes/mini_lower_link.obj"/-->
+                <cylinder length ="0.15" radius = "0.01"/>
             </geometry>
             <origin rpy="0.0 3.141592 0.0" xyz="0.0 0.0 -0.095"/>
         </visual>
         <collision>
             <geometry>
-              <!--mesh filename="meshes/mini_lower_link.obj"/-->
-	      <cylinder length ="0.15" radius = "0.01"/>
+                <!--mesh filename="meshes/mini_lower_link.obj"/-->
+                <cylinder length ="0.15" radius = "0.01"/>
             </geometry>
             <origin rpy="0.0 3.141592 0.0" xyz="0.0 0.0 -0.095"/>
         </collision>
     </link>
 
-    <!-- Adapter to Foot joint -->
-    <joint name="fixed_shank_to_foot_hl" type="fixed">
-        <parent link="shank_hl"/>
-        <child link="foot_hl"/>
-        <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 -0.19"/>
-    </joint>
 
-    <link name="foot_hl">
-	<visual>
-            <geometry>
-              <sphere radius = "0.0175"/>
-            </geometry>
-            <origin rpy="0.0 3.141592 0.0" xyz="0.0 0.0 0.0"/>
-        </visual>
-	<collision>
-            <geometry>
-              <!--mesh filename="meshes/mini_lower_link.obj"/-->
-	       <sphere radius = "0.0175"/>
-            </geometry>
-            <origin rpy="0.0 3.141592 0" xyz="0.0 0.0 0"/>
-        </collision>
-    </link>
 
-    
-<!--!!!!!!!!!!!! Hind Right Leg !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!-->
+    <!--!!!!!!!!!!!! Hind Right Leg !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!-->
     <joint name="torso_to_abduct_hr_j" type="continuous">
         <axis xyz="1 0 0"/>
         <origin rpy="0 0 0" xyz="-0.19 -0.049 0.0"/>
         <parent link="body"/>
         <child link="abduct_hr"/>
-	<limit effort="18" lower="-1.6" upper="1.6" velocity="40"/>
+        <limit effort="18" lower="-1.6" upper="1.6" velocity="40"/>
     </joint>
     <link name="abduct_hr">
         <inertial>
@@ -440,31 +375,31 @@
         </inertial>
         <visual>
             <geometry>
-              <!--mesh filename="meshes/mini_abad.obj"/-->
-	      <cylinder length ="0.01" radius = "0.0475"/>
+                <!--mesh filename="meshes/mini_abad.obj"/-->
+                <cylinder length ="0.01" radius = "0.0475"/>
             </geometry>
             <!--origin rpy="0.0 0.0 1.5708" xyz="0.055 0.0 0.0"/-->
-	    <origin rpy="0.0 1.5708 1.5708" xyz="0.055 0.0 0.0"/>
+            <origin rpy="0.0 1.5708 1.5708" xyz="0.055 0.0 0.0"/>
         </visual>
-	<visual>
+        <visual>
             <geometry>
-              <!--mesh filename="meshes/mini_abad.obj"/-->
-	      <cylinder length ="0.06" radius = "0.0425"/>
+                <!--mesh filename="meshes/mini_abad.obj"/-->
+                <cylinder length ="0.06" radius = "0.0425"/>
             </geometry>
             <!--origin rpy="3.141592 0.0 1.5708" xyz="-0.055 0.0 0.0"/-->
-	    <origin rpy="1.5708 0.0 0.0" xyz="0.0 0.0 0.0"/>
+            <origin rpy="1.5708 0.0 0.0" xyz="0.0 0.0 0.0"/>
         </visual>
         <collision>
             <geometry>
-              <!--mesh filename="meshes/mini_abad.obj"/-->
-	      <cylinder length ="0.01" radius = "0.0475"/>
+                <!--mesh filename="meshes/mini_abad.obj"/-->
+                <cylinder length ="0.01" radius = "0.0475"/>
             </geometry>
             <origin rpy="0.0 1.5708 1.5708" xyz="0.055 0.0 0.0"/>
         </collision>
-	<collision>
+        <collision>
             <geometry>
-              <!--mesh filename="meshes/mini_abad.obj"/-->
-	      <cylinder length ="0.06" radius = "0.0425"/>
+                <!--mesh filename="meshes/mini_abad.obj"/-->
+                <cylinder length ="0.06" radius = "0.0425"/>
             </geometry>
             <origin rpy="1.5708 0.0 0.0" xyz="0.0 0.0 0.0"/>
         </collision>
@@ -475,7 +410,7 @@
         <origin rpy="0.0 0.0 0.0" xyz="0.0 -0.062 0.00"/>
         <parent link="abduct_hr"/>
         <child link="thigh_hr"/>
-	<limit effort="18" lower="-2.6" upper="2.6" velocity="40"/>
+        <limit effort="18" lower="-2.6" upper="2.6" velocity="40"/>
     </joint>
     <link name="thigh_hr">
         <inertial>
@@ -486,15 +421,15 @@
         </inertial>
         <visual>
             <geometry>
-              <!--mesh filename="meshes/mini_upper_link.obj"/-->
-	      <cylinder length ="0.17" radius = "0.015"/>
+                <!--mesh filename="meshes/mini_upper_link.obj"/-->
+                <cylinder length ="0.17" radius = "0.015"/>
             </geometry>
             <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 -0.105"/>
         </visual>
         <collision>
             <geometry>
-              <!--mesh filename="meshes/mini_upper_link.obj"/-->
-	      <cylinder length ="0.17" radius = "0.015"/>
+                <!--mesh filename="meshes/mini_upper_link.obj"/-->
+                <cylinder length ="0.17" radius = "0.015"/>
             </geometry>
             <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 -0.105"/>
         </collision>
@@ -505,7 +440,7 @@
         <origin rpy="0.0 0 0.0" xyz="0.0 0.0 -0.209"/>
         <parent link="thigh_hr"/>
         <child link="shank_hr"/>
-	<limit effort="26" lower="-2.6" upper="2.6" velocity="26"/>
+        <limit effort="26" lower="-2.6" upper="2.6" velocity="26"/>
     </joint>
     <link name="shank_hr">
         <inertial>
@@ -515,42 +450,166 @@
         </inertial>
         <visual>
             <geometry>
-              <!--mesh filename="meshes/mini_lower_link.obj"/-->
-	      <cylinder length ="0.15" radius = "0.01"/>
+                <!--mesh filename="meshes/mini_lower_link.obj"/-->
+                <cylinder length ="0.15" radius = "0.01"/>
             </geometry>
             <origin rpy="0.0 3.141592 0.0" xyz="0.0 0.0 -0.095"/>
         </visual>
         <collision>
             <geometry>
-              <!--mesh filename="meshes/mini_lower_link.obj"/-->
-	      <cylinder length ="0.15" radius = "0.01"/>
+                <!--mesh filename="meshes/mini_lower_link.obj"/-->
+                <cylinder length ="0.15" radius = "0.01"/>
             </geometry>
             <origin rpy="0.0 3.141592 0.0" xyz="0 0 -0.095"/>
         </collision>
 
     </link>
 
-    <!-- Adapter to Foot joint -->
-    <joint name="fixed_shank_to_foot_hr" type="fixed">
-        <parent link="shank_hr"/>
-        <child link="foot_hr"/>
-        <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 -0.19"/>
+    <!-- Add foot links to enable relevent computations, including better collision detection -->
+    <joint name="shank_fl_to_foot_fl" type="fixed">
+        <parent link="shank_fl"/>
+        <child link="LF_FOOT"/>
+        <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 -0.195"/>
     </joint>
-
-    <link name="foot_hr">
-	<visual>
+    <link name="LF_FOOT">
+        <collision>
             <geometry>
-              <sphere radius = "0.0175"/>
+                <sphere radius = "0.0175"/>
             </geometry>
-            <origin rpy="0.0 3.141592 0.0" xyz="0.0 0.0 0.0"/>
-        </visual>
-	<collision>
-            <geometry>
-              <!--mesh filename="meshes/mini_lower_link.obj"/-->
-	       <sphere radius = "0.0175"/>
-            </geometry>
-            <origin rpy="0.0 3.141592 0" xyz="0.0 0.0 0"/>
+            <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.0"/>
         </collision>
+        <visual>
+            <geometry>
+                <sphere radius = "0.0175"/>
+            </geometry>
+            <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.0"/>
+        </visual>
     </link>
+
+    <joint name="shank_fr_to_foot_fr" type="fixed">
+        <parent link="shank_fr"/>
+        <child link="RF_FOOT"/>
+        <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 -0.195"/>
+    </joint>
+    <link name="RF_FOOT">
+        <collision>
+            <geometry>
+                <sphere radius = "0.0175"/>
+            </geometry>
+            <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.0"/>
+        </collision>
+        <visual>
+            <geometry>
+                <sphere radius = "0.0175"/>
+            </geometry>
+            <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.0"/>
+        </visual>
+    </link>
+
+    <joint name="shank_hl_to_foot_hl" type="fixed">
+        <parent link="shank_hl"/>
+        <child link="LH_FOOT"/>
+        <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 -0.195"/>
+    </joint>
+    <link name="LH_FOOT">
+        <collision>
+            <geometry>
+                <sphere radius = "0.0175"/>
+            </geometry>
+            <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.0"/>
+        </collision>
+        <visual>
+            <geometry>
+                <sphere radius = "0.0175"/>
+            </geometry>
+            <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.0"/>
+        </visual>
+    </link>
+
+    <joint name="shank_hr_to_foot_hr" type="fixed">
+        <parent link="shank_hr"/>
+        <child link="RH_FOOT"/>
+        <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 -0.195"/>
+    </joint>
+    <link name="RH_FOOT">
+        <collision>
+            <geometry>
+                <sphere radius = "0.0175"/>
+            </geometry>
+            <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.0"/>
+        </collision>
+        <visual>
+            <geometry>
+                <sphere radius = "0.0175"/>
+            </geometry>
+            <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 0.0"/>
+        </visual>
+    </link>
+
+    <!-- Joint Transmissions: Tells Drake that these are actuated -->
+    <transmission name="torso_to_abduct_fl_j_transmission">
+        <type>transmission_interface/SimpleTransmission</type>
+        <joint name="torso_to_abduct_fl_j"/>
+        <actuator name="torso_to_abduct_fl_j_actuator"/>
+    </transmission>
+    <transmission name="abduct_fl_to_thigh_fl_j_transmission">
+        <type>transmission_interface/SimpleTransmission</type>
+        <joint name="abduct_fl_to_thigh_fl_j"/>
+        <actuator name="abduct_fl_to_thigh_fl_j_actuator"/>
+    </transmission>
+    <transmission name="thigh_fl_to_knee_fl_j_transmission">
+        <type>transmission_interface/SimpleTransmission</type>
+        <joint name="thigh_fl_to_knee_fl_j"/>
+        <actuator name="thigh_fl_to_knee_fl_j_actuator"/>
+    </transmission>
+
+    <transmission name="torso_to_abduct_fr_j_transmission">
+        <type>transmission_interface/SimpleTransmission</type>
+        <joint name="torso_to_abduct_fr_j"/>
+        <actuator name="torso_to_abduct_fr_j_actuator"/>
+    </transmission>
+    <transmission name="abduct_fr_to_thigh_fr_j_transmission">
+        <type>transmission_interface/SimpleTransmission</type>
+        <joint name="abduct_fr_to_thigh_fr_j"/>
+        <actuator name="abduct_fr_to_thigh_fr_j_actuator"/>
+    </transmission>
+    <transmission name="thigh_fr_to_knee_fr_j_transmission">
+        <type>transmission_interface/SimpleTransmission</type>
+        <joint name="thigh_fr_to_knee_fr_j"/>
+        <actuator name="thigh_fr_to_knee_fr_j_actuator"/>
+    </transmission>
+
+    <transmission name="torso_to_abduct_hl_j_transmission">
+        <type>transmission_interface/SimpleTransmission</type>
+        <joint name="torso_to_abduct_hl_j"/>
+        <actuator name="torso_to_abduct_hl_j_actuator"/>
+    </transmission>
+    <transmission name="abduct_hl_to_thigh_hl_j_transmission">
+        <type>transmission_interface/SimpleTransmission</type>
+        <joint name="abduct_hl_to_thigh_hl_j"/>
+        <actuator name="abduct_hl_to_thigh_hl_j_actuator"/>
+    </transmission>
+    <transmission name="thigh_hl_to_knee_hl_j_transmission">
+        <type>transmission_interface/SimpleTransmission</type>
+        <joint name="thigh_hl_to_knee_hl_j"/>
+        <actuator name="thigh_hl_to_knee_hl_j_actuator"/>
+    </transmission>
+
+    <transmission name="torso_to_abduct_hr_j_transmission">
+        <type>transmission_interface/SimpleTransmission</type>
+        <joint name="torso_to_abduct_hr_j"/>
+        <actuator name="torso_to_abduct_hr_j_actuator"/>
+    </transmission>
+    <transmission name="abduct_hr_to_thigh_hr_j_transmission">
+        <type>transmission_interface/SimpleTransmission</type>
+        <joint name="abduct_hr_to_thigh_hr_j"/>
+        <actuator name="abduct_hr_to_thigh_hr_j_actuator"/>
+    </transmission>
+    <transmission name="thigh_hr_to_knee_hr_j_transmission">
+        <type>transmission_interface/SimpleTransmission</type>
+        <joint name="thigh_hr_to_knee_hr_j"/>
+        <actuator name="thigh_hr_to_knee_hr_j_actuator"/>
+    </transmission>
+
 
 </robot>

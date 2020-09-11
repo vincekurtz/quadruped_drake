@@ -7,7 +7,8 @@ import os
 # Drake only loads things relative to the drake path, so we have to do some hacking
 # to load an arbitrary file
 #robot_description_path = "./models/anymal_b_simple_description/urdf/anymal_drake.urdf" # relative to this file
-robot_description_path = "./models/mini_cheetah/mini_cheetah_simple_v2.urdf"
+#robot_description_path = "./models/mini_cheetah/mini_cheetah_simple_v2.urdf"
+robot_description_path = "./models/mini_cheetah/mini_cheetah_mesh.urdf"
 drake_path = getDrakePath()
 robot_description_file = "drake/" + os.path.relpath(robot_description_path, start=drake_path)
 
@@ -83,10 +84,10 @@ plant_context = diagram.GetMutableSubsystemContext(plant, diagram_context)
 q0 = np.asarray([ 0.0, 0.0, 0.0, 1.0,     # base orientation
                   0.0, 0.0, 0.7,          # base position
                   0.0, 0.0, 0.0, 0.0,     # ad/ab
-                  0.5, 0.5,-0.5,-0.5,     # hip
-                 -0.8,-0.8, 0.8, 0.8])    # knee
+                 -0.8,-0.8,-0.8,-0.8,     # hip
+                  1.6, 1.6, 1.6, 1.6])    # knee
 qd0 = np.zeros(plant.num_velocities())
 plant.SetPositions(plant_context,q0)
 plant.SetVelocities(plant_context,qd0)
 
-simulator.AdvanceTo(2.0)
+simulator.AdvanceTo(10.0)

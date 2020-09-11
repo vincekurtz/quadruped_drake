@@ -191,8 +191,8 @@ class BasicController(LeafSystem):
         v = self.plant.GetVelocities(self.context)
         
         # Tuning parameters
-        Kp = 100*np.eye(self.plant.num_velocities())
-        Kd = 10*np.eye(self.plant.num_velocities())
+        Kp = 50*np.eye(self.plant.num_velocities())
+        Kd = 2*np.eye(self.plant.num_velocities())
 
         # Fun with dynamics
         M, Cv, tau_g, S = self.CalcDynamics()
@@ -205,10 +205,10 @@ class BasicController(LeafSystem):
 
         # Nominal joint angles
         q_nom = np.asarray([ 0.0, 0.0, 0.0, 1.0,     # base orientation
-                             0.0, 0.0, 0.5,          # base position
+                             0.0, 0.0, 0.7,          # base position
                              0.0, 0.0, 0.0, 0.0,     # ad/ab
-                             0.5, 0.5,-0.5,-0.5,     # hip
-                            -0.8,-0.8, 0.8, 0.8])    # knee
+                            -0.8,-0.8,-0.8,-0.8,     # hip
+                             1.6, 1.6, 1.6, 1.6])    # knee
 
         # Compute desired generalized forces
         q_err = self.plant.MapQDotToVelocity(self.context, q-q_nom)  # Need to use qd=N(q)*v here,

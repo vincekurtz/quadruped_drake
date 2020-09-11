@@ -77,7 +77,7 @@
             <geometry>
                 <mesh filename="meshes/mini_upper_link.obj"/>
             </geometry>
-            <origin rpy="0.0 -1.5708 0.0" xyz="0.0 0.0 0.0"/>
+            <origin rpy="0.0 -1.5708 3.1415" xyz="0.0 0.0 0.0"/>
         </visual>
         <!--
         <collision>
@@ -104,10 +104,9 @@
         </inertial>
         <visual>
             <geometry>
-                <!---<mesh filename="meshes/mini_lower_link.obj"/>-->
-                <cylinder length ="0.19" radius = "0.010"/>
+                <mesh filename="meshes/mini_lower_link_.stl"/>
             </geometry>
-            <origin rpy="0.0 3.141592 0.0" xyz="0.0 0.0 -0.095"/>
+            <origin rpy="0.0 3.141592 0.0" xyz="0.0 0.0 0.0"/>
         </visual>
         <!--
         <collision>
@@ -208,10 +207,9 @@
         </inertial>
         <visual>
             <geometry>
-                <!--<mesh filename="meshes/mini_lower_link.obj"/>-->
-                <cylinder length ="0.19" radius = "0.010"/>
+                <mesh filename="meshes/mini_lower_link_.stl"/>
             </geometry>
-            <origin rpy="0.0 3.141592 0.0" xyz="0.0 0.0 -0.095"/>
+            <origin rpy="0.0 3.141592 0.0" xyz="0.0 0.0 0.0"/>
         </visual>
         <!--
         <collision>
@@ -312,10 +310,9 @@
         </inertial>
         <visual>
             <geometry>
-                <!--mesh filename="meshes/mini_lower_link.obj"/-->
-                <cylinder length ="0.19" radius = "0.010"/>
+                <mesh filename="meshes/mini_lower_link_.stl"/>
             </geometry>
-            <origin rpy="0.0 3.141592 0.0" xyz="0.0 0.0 -0.095"/>
+            <origin rpy="0.0 3.141592 0.0" xyz="0.0 0.0 0.0"/>
         </visual>
         <!--
         <collision>
@@ -389,7 +386,7 @@
             <geometry>
                 <mesh filename="meshes/mini_upper_link.obj"/>
             </geometry>
-            <origin rpy="0.0 -1.5708 3.1415" xyz="0.0 0.0 0.0"/>
+            <origin rpy="0.0 -1.5708 0.0" xyz="0.0 0.0 0.0"/>
         </visual>
         <!--
         <collision>
@@ -416,10 +413,9 @@
         </inertial>
         <visual>
             <geometry>
-                <!--mesh filename="meshes/mini_lower_link.obj"/-->
-                <cylinder length ="0.19" radius = "0.010"/>
+                <mesh filename="meshes/mini_lower_link_.stl"/>
             </geometry>
-            <origin rpy="0.0 3.141592 0.0" xyz="0 0 -0.095"/>
+            <origin rpy="0.0 3.141592 0.0" xyz="0 0 0"/>
         </visual>
         <!--
         <collision>
@@ -441,7 +437,7 @@
     <joint name="shank_fl_to_foot_fl" type="fixed">
         <parent link="shank_fl"/>
         <child link="LF_FOOT"/>
-        <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 -0.195"/>
+        <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 -0.190"/>
     </joint>
     <link name="LF_FOOT">
         <collision>
@@ -461,7 +457,7 @@
     <joint name="shank_fr_to_foot_fr" type="fixed">
         <parent link="shank_fr"/>
         <child link="RF_FOOT"/>
-        <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 -0.195"/>
+        <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 -0.190"/>
     </joint>
     <link name="RF_FOOT">
         <collision>
@@ -481,7 +477,7 @@
     <joint name="shank_hl_to_foot_hl" type="fixed">
         <parent link="shank_hl"/>
         <child link="LH_FOOT"/>
-        <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 -0.195"/>
+        <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 -0.190"/>
     </joint>
     <link name="LH_FOOT">
         <collision>
@@ -501,7 +497,7 @@
     <joint name="shank_hr_to_foot_hr" type="fixed">
         <parent link="shank_hr"/>
         <child link="RH_FOOT"/>
-        <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 -0.195"/>
+        <origin rpy="0.0 0.0 0.0" xyz="0.0 0.0 -0.190"/>
     </joint>
     <link name="RH_FOOT">
         <collision>

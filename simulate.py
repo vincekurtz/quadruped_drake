@@ -16,7 +16,7 @@ robot_description_file = "drake/" + os.path.relpath(robot_description_path, star
 robot_urdf  = FindResourceOrThrow(robot_description_file)
 builder = DiagramBuilder()
 scene_graph = builder.AddSystem(SceneGraph())
-dt = 5e-3
+dt = 2e-3
 plant = builder.AddSystem(MultibodyPlant(time_step=dt))
 plant.RegisterAsSourceForSceneGraph(scene_graph)
 quad = Parser(plant=plant).AddModelFromFile(robot_urdf,"quad")
@@ -88,7 +88,7 @@ simulator.set_publish_every_time_step(False)
 
 # Set initial states
 plant_context = diagram.GetMutableSubsystemContext(plant, diagram_context)
-q0 = np.asarray([ 0.0, 0.0, 0.0, 1.0,     # base orientation
+q0 = np.asarray([ 1.0, 0.0, 0.0, 0.0,     # base orientation
                   0.0, 0.0, 0.3,          # base position
                   0.0, 0.0, 0.0, 0.0,     # ad/ab
                  -0.8,-0.8,-0.8,-0.8,     # hip

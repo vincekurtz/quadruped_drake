@@ -122,16 +122,16 @@ class QPController(BasicController):
         p_body = X_body.translation()
         pd_body = (J_body@v)[3:]
         pdd_body_des = trunk_data["pdd_body"]  \
-                         - 2.0*(p_body - trunk_data["p_body"]) \
-                         - 2.5*(pd_body - trunk_data["pd_body"])
+                         - 10.0*(p_body - trunk_data["p_body"]) \
+                         - 5.0*(pd_body - trunk_data["pd_body"])
 
         rpy_body = RollPitchYaw(X_body.rotation())
         rpy_body_des = RollPitchYaw(trunk_data["rpy_body"])
         w_body = (J_body@v)[:3]   # angular velocity of the body
 
         wd_body_des = trunk_data["wd_body"]  \
-                        - 2.0*( rpy_body.CalcAngularVelocityInParentFromRpyDt(rpy_body.vector() - rpy_body_des.vector() )) \
-                        - 2.5*( w_body - trunk_data["w_body"] )
+                        - 10.0*( rpy_body.CalcAngularVelocityInParentFromRpyDt(rpy_body.vector() - rpy_body_des.vector() )) \
+                        - 5.0*( w_body - trunk_data["w_body"] )
 
         # Deterimine desired accelerations for the swing feet
         p_lf, J_lf, Jdv_lf = self.CalcFramePositionQuantities(self.lf_foot_frame)
@@ -152,7 +152,7 @@ class QPController(BasicController):
         
         vd = self.mp.NewContinuousVariables(self.plant.num_velocities(), 1, 'vd')
         tau = self.mp.NewContinuousVariables(self.plant.num_actuators(), 1, 'tau')
-        
+
         f_c = [self.mp.NewContinuousVariables(3,1,'f_%s'%j) for j in range(4)]
         J_c = [J_lf, J_rf, J_lh, J_rh]
         Jdv_c = [Jdv_lf, Jdv_rf, Jdv_lh, Jdv_rh]

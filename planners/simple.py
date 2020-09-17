@@ -20,6 +20,8 @@ class BasicTrunkPlanner(LeafSystem):
     def DoSetTrunkOutputs(self, context, output):
         output_dict = output.get_mutable_value()
 
+        t = context.get_time()
+
         # Foot positions
         output_dict["p_lf"] = np.array([ 0.175, 0.11, 0.0])
         output_dict["p_rf"] = np.array([ 0.175,-0.11, 0.0])
@@ -45,8 +47,8 @@ class BasicTrunkPlanner(LeafSystem):
         output_dict["f_cj"] = np.zeros((3,4))
 
         # Body pose
-        output_dict["rpy_body"] = np.array([0.0, 0.0, np.pi])
-        output_dict["p_body"] = np.array([0.0, 0.0, 0.25])
+        output_dict["rpy_body"] = np.array([0.0, 0.4*np.sin(t), 0.4*np.cos(t)])
+        output_dict["p_body"] = np.array([0.0, 0.0, 0.30])
 
         # Body velocities
         output_dict["w_body"] = np.zeros(3)

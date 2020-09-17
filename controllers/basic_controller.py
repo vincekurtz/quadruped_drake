@@ -37,6 +37,8 @@ class BasicController(LeafSystem):
 
         # Relevant frames for the CoM and each foot
         self.world_frame = self.plant.world_frame()
+        self.body_frame = self.plant.GetFrameByName("body")
+
         self.lf_foot_frame = self.plant.GetFrameByName("LF_FOOT")  # left front
         self.rf_foot_frame = self.plant.GetFrameByName("RF_FOOT")  # right front
         self.lh_foot_frame = self.plant.GetFrameByName("LH_FOOT")  # left hind
@@ -181,6 +183,31 @@ class BasicController(LeafSystem):
         # TODO: there seems to be a bug here with the jacobian computation
         Jd = jacobian(J_fcn,q)@self.plant.MapVelocityToQDot(self.context,v)
         return Jd
+    
+    def CalcFramePoseQuantities(self, frame):
+        """
+        Compute the pose (position + orientation), spatial jacobian (J) and,
+        spatial jacobian-time-derivative-times-v (Jdv) for the given frame. 
+        
+        Assumes that self.context has been set properly. 
+        """
+        pose = self.plant.CalcRelativeTransform(self.context,
+                                           self.world_frame,
+                                           frame)
+        J = self.plant.CalcJacobianSpatialVelocity(self.context,
+                                                   JacobianWrtVariable.kV,
+                                                   frame,
+                                                   np.array([0,0,0]),
+                                                   self.world_frame,
+                                                   self.world_frame)
+        Jdv = self.plant.CalcBiasSpatialAcceleration(self.context,
+                                                     JacobianWrtVariable.kV,
+                                                     frame,
+                                                     np.array([0,0,0]),
+                                                     self.world_frame,
+                                                     self.world_frame)
+
+        return pose, J, Jdv.get_coeffs()
 
     def DoSetControlTorques(self, context, output):
         """
@@ -203,9 +230,11 @@ class BasicController(LeafSystem):
         p_lf, J_lf, Jdv_lf = self.CalcFramePositionQuantities(self.lf_foot_frame)
         #Jd_lf = self.CalcFrameJacobianDot(self.lf_foot_frame_autodiff)
 
+        pose_body, J_body, Jdv_body = self.CalcFramePoseQuantities(self.body_frame)
+
         # Nominal joint angles
-        q_nom = np.asarray([ 0.0, 0.0, 0.0, 1.0,     # base orientation
-                             0.0, 0.0, 0.7,          # base position
+        q_nom = np.asarray([ 1.0, 0.0, 0.0, 0.0,     # base orientation
+                             0.0, 0.0, 0.3,          # base position
                              0.0, 0.0, 0.0, 0.0,     # ad/ab
                             -0.8,-0.8,-0.8,-0.8,     # hip
                              1.6, 1.6, 1.6, 1.6])    # knee

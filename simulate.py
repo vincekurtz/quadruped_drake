@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 
 from pydrake.all import *
-from controllers.basic_controller import BasicController
+from controllers import QPController
+from planners import BasicTrunkPlanner
 import os
 
 # Drake only loads things relative to the drake path, so we have to do some hacking
@@ -15,7 +16,7 @@ robot_description_file = "drake/" + os.path.relpath(robot_description_path, star
 robot_urdf  = FindResourceOrThrow(robot_description_file)
 builder = DiagramBuilder()
 scene_graph = builder.AddSystem(SceneGraph())
-dt = 1e-3
+dt = 5e-3
 plant = builder.AddSystem(MultibodyPlant(time_step=dt))
 plant.RegisterAsSourceForSceneGraph(scene_graph)
 quad = Parser(plant=plant).AddModelFromFile(robot_urdf,"quad")
@@ -53,8 +54,14 @@ builder.Connect(
         plant.get_geometry_poses_output_port(),
         scene_graph.get_source_pose_port(plant.get_source_id()))
 
-# Hook up a controller
-controller = builder.AddSystem(BasicController(plant,dt))
+# Create high-level trunk-model planner and low-level whole-body controller
+planner = builder.AddSystem(BasicTrunkPlanner())
+controller = builder.AddSystem(QPController(plant,dt))
+
+# Connect the trunk-model planner to the controller
+builder.Connect(planner.get_output_port(), controller.get_input_port(1))
+
+# Connect the controller to the simulated plant
 builder.Connect(controller.get_output_port(),
                 plant.get_actuation_input_port(quad))
 builder.Connect(plant.get_state_output_port(),
@@ -81,8 +88,8 @@ simulator.set_publish_every_time_step(False)
 
 # Set initial states
 plant_context = diagram.GetMutableSubsystemContext(plant, diagram_context)
-q0 = np.asarray([ 1.0, 0.0, 0.0, 0.0,     # base orientation
-                  0.0, 0.0, 0.7,          # base position
+q0 = np.asarray([ 0.0, 0.0, 0.0, 1.0,     # base orientation
+                  0.0, 0.0, 0.3,          # base position
                   0.0, 0.0, 0.0, 0.0,     # ad/ab
                  -0.8,-0.8,-0.8,-0.8,     # hip
                   1.6, 1.6, 1.6, 1.6])    # knee

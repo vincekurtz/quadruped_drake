@@ -89,11 +89,8 @@ class QPController(BasicController):
         Add contact constraints with velocity damping
 
             J_c[j]*vd + Jdv_c[j] == -Kd*J_c[j]*v
-
-        with some tolerance nu. 
         """
-        Kd = np.eye(3)
-        nu = 1e-3
+        Kd = 100*np.eye(3)
 
         num_contacts = len(J_c)
         for j in range(num_contacts):
@@ -101,9 +98,6 @@ class QPController(BasicController):
             pdd_des = -Kd@pd
 
             constraint = self.AddJacobianTypeConstraint(J_c[j], vd, Jdv_c[j], pdd_des)
-
-            constraint.evaluator().UpdateUpperBound(nu*np.ones(3))
-            constraint.evaluator().UpdateLowerBound(-nu*np.ones(3))
 
     def DoSetControlTorques(self, context, output):
         self.UpdateStoredContext(context)

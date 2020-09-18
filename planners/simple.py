@@ -42,17 +42,13 @@ class BasicTrunkPlanner(LeafSystem):
 
         # Foot contact states: [lf,rf,lh,rh], True indicates being in contact.
         output_dict["contact_states"] = [True,True,True,True]
-        if t > 5:
-            # lift one of the feet
-            output_dict["contact_states"] = [False,True,True,True]
-            output_dict["p_lf"] = np.array([ 0.175, 0.11, 0.1])
 
         # Foot contact forces, where each row corresponds to a foot [lf,rf,lh,rh].
         output_dict["f_cj"] = np.zeros((3,4))
 
         # Body pose
         output_dict["rpy_body"] = np.array([0.0, 0.0, 0.0])
-        output_dict["p_body"] = np.array([-0.1, -0.05, 0.30])
+        output_dict["p_body"] = np.array([0.0, 0.0, 0.30])
 
         # Body velocities
         output_dict["w_body"] = np.zeros(3)
@@ -62,7 +58,10 @@ class BasicTrunkPlanner(LeafSystem):
         output_dict["wd_body"] = np.zeros(3)
         output_dict["pdd_body"] = np.zeros(3)
 
-
+        if t > 5:
+            # lift one of the feet
+            output_dict["contact_states"] = [True,False,True,True]
+            output_dict["p_rf"] = np.array([ 0.175,-0.11, 0.1])
 
 
 

@@ -133,16 +133,44 @@ class QPController(BasicController):
                         - 10.0*( rpy_body.CalcAngularVelocityInParentFromRpyDt(rpy_body.vector() - rpy_body_des.vector() )) \
                         - 5.0*( w_body - trunk_data["w_body"] )
 
-        # Deterimine desired accelerations for the swing feet
+        # Note current foot positions, Jacobians, etc
         p_lf, J_lf, Jdv_lf = self.CalcFramePositionQuantities(self.lf_foot_frame)
         p_rf, J_rf, Jdv_rf = self.CalcFramePositionQuantities(self.rf_foot_frame)
         p_lh, J_lh, Jdv_lh = self.CalcFramePositionQuantities(self.lh_foot_frame)
         p_rh, J_rh, Jdv_rh = self.CalcFramePositionQuantities(self.rh_foot_frame)
 
+        p_feet = np.array([p_lf, p_rf, p_lh, p_rh])
+        J_feet = np.array([J_lf, J_rf, J_lh, J_rh])
+        Jdv_feet = np.array([Jdv_lf, Jdv_rf, Jdv_lh, Jdv_rh])
+
+        # Unpack desired positions, velocities, accelerations of feet
+        p_des_feet = np.array([trunk_data["p_lf"],trunk_data["p_rf"],trunk_data["p_lh"],trunk_data["p_rh"]])
+        pd_des_feet = np.array([trunk_data["pd_lf"],trunk_data["pd_rf"],trunk_data["pd_lh"],trunk_data["pd_rh"]])
+        pdd_des_feet = np.array([trunk_data["pdd_lf"],trunk_data["pdd_rf"],trunk_data["pdd_lh"],trunk_data["pdd_rh"]])
+
+        # Note which feet are in contact (_c) and which feet are in swing (_s)
+        contact_feet = trunk_data["contact_states"]
+        swing_feet = [not foot for foot in contact_feet]
+        num_contact = sum(contact_feet)
+        num_swing = sum(swing_feet)
+
+        p_c = p_feet[contact_feet]
+        J_c = J_feet[contact_feet]
+        Jdv_c = Jdv_feet[contact_feet]
+
+        p_s = p_feet[swing_feet]
+        J_s = J_feet[swing_feet]
+        Jdv_s = Jdv_feet[swing_feet]
+
+        # Set desired accelerations for swing feet
+        pdd_s_des = pdd_des_feet[swing_feet] \
+                        - 10.0* (p_s.reshape(num_swing,3) - p_des_feet[swing_feet]) \
+                        - 5.0* (J_s@v - pd_des_feet[swing_feet])
+
         # Set up the QP
         #   minimize:
         #       w_1* || J_body*vd + Jd_body*v - vd_body_des ||^2 +
-        #       w_2* || J_foot*vd+ Jd_foot*v - pdd_foot_des ||^2 +
+        #       w_2* || J_s*vd+ Jd_s*v - pdd_s_des ||^2
         #   subject to:
         #        M*vd + Cv + tau_g = S'*tau + sum(J'*f)
         #        f \in friction cones
@@ -152,14 +180,15 @@ class QPController(BasicController):
         
         vd = self.mp.NewContinuousVariables(self.plant.num_velocities(), 1, 'vd')
         tau = self.mp.NewContinuousVariables(self.plant.num_actuators(), 1, 'tau')
-
-        f_c = [self.mp.NewContinuousVariables(3,1,'f_%s'%j) for j in range(4)]
-        J_c = [J_lf, J_rf, J_lh, J_rh]
-        Jdv_c = [Jdv_lf, Jdv_rf, Jdv_lh, Jdv_rh]
+        f_c = [self.mp.NewContinuousVariables(3,1,'f_%s'%j) for j in range(num_contact)]
 
         # min || J_body*vd + Jd_body*v - pdd_body_des \|^2
         vd_body_des = np.hstack([wd_body_des,pdd_body_des])   # desired spatial acceleration of the body
         self.AddJacobianTypeCost(J_body, vd, Jdv_body, vd_body_des)
+
+        # min || J_s*vd+ Jd_s*v - pdd_s_des ||^2
+        for i in range(num_swing):
+            self.AddJacobianTypeCost(J_s[i], vd, Jdv_s[i], pdd_s_des[i])
 
         # s.t.  M*vd + Cv + tau_g = S'*tau + sum(J_c[j]'*f_c[j])
         self.AddDynamicsConstraint(M, vd, Cv, tau_g, S, tau, J_c, f_c)

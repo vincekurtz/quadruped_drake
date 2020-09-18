@@ -17,11 +17,11 @@ class BasicTrunkPlanner(LeafSystem):
                 lambda: AbstractValue.Make({}),
                 self.DoSetTrunkOutputs)
 
-    def DoSetTrunkOutputs(self, context, output):
-        output_dict = output.get_mutable_value()
-
-        t = context.get_time()
-
+    def SimpleStanding(self, output_dict):
+        """
+        Set output values corresponing to simply
+        standing on all four feet.
+        """
         # Foot positions
         output_dict["p_lf"] = np.array([ 0.175, 0.11, 0.0])
         output_dict["p_rf"] = np.array([ 0.175,-0.11, 0.0])
@@ -58,10 +58,28 @@ class BasicTrunkPlanner(LeafSystem):
         output_dict["wd_body"] = np.zeros(3)
         output_dict["pdd_body"] = np.zeros(3)
 
-        if t > 5:
-            # lift one of the feet
-            output_dict["contact_states"] = [True,False,True,True]
-            output_dict["p_rf"] = np.array([ 0.175,-0.11, 0.1])
+    def OrientationTest(self, output_dict, t):
+        """
+        Given the current time t, generate output values for
+        for a simple orientation test.
+        """
+        self.SimpleStanding(output_dict)
+        output_dict["rpy_body"] = np.array([0.0, 0.4*np.sin(t), 0.4*np.cos(t)])
 
+    def RaiseFoot(self, output_dict):
+        """
+        Modify the simple standing output values to lift one foot
+        off the ground.
+        """
+        self.SimpleStanding(output_dict)
+        output_dict["contact_states"] = [True,False,True,True]
+        output_dict["p_rf"] = np.array([ 0.175,-0.11, 0.1])
 
+    def DoSetTrunkOutputs(self, context, output):
+        output_dict = output.get_mutable_value()
+
+        if context.get_time() < 5:
+            self.OrientationTest(output_dict, context.get_time())
+        else:
+            self.RaiseFoot(output_dict)
 

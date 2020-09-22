@@ -9,9 +9,7 @@
 #include <Eigen/Dense>
 
 #include <lcm/lcm-cpp.hpp>
-#include "lcm_types/trunk_state_t.hpp"
-#include "lcm_types/trunk_trajectory_t.hpp"
-
+#include "lcm_types/trunklcm/trunk_state_t.hpp"
 
 
 using namespace towr;
@@ -46,7 +44,7 @@ int main() {
     formulation.final_base_.lin.at(towr::kPos) << 1.0, 0.0, 0.5;
 
     // Total duration of the movement
-    float total_duration = 2.0;
+    double total_duration = 2.0;
 
     // Parameters defining contact sequence and default durations. We use
     // a GaitGenerator with some predifined gaits
@@ -81,49 +79,58 @@ int main() {
     
     // Send solution over LCM
     lcm::LCM lcm;
-    trunk_state_t my_data;
-    my_data.timestamp = 3.14;
-    lcm.publish("trunk_trajectory", &my_data);
+    trunklcm::trunk_state_t state;
+
+    double dt = 0.1;
+    for (double t=0; t<total_duration; t=t+dt) {
+        state.finished = false;
+        state.timestamp = t;
+        lcm.publish("trunk_state", &state);
+    }
+
+    state.timestamp = total_duration;  // send one final message including the finished flag
+    state.finished = true;
+    lcm.publish("trunk_state", &state);
 
     // Can directly view the optimization variables through:
     // Eigen::VectorXd x = nlp.GetVariableValues()
     // However, it's more convenient to access the splines constructed from these
     // variables and query their values at specific times:
-    using namespace std;
-    cout.precision(2);
-    nlp.PrintCurrent(); // view variable-set, constraint violations, indices,...
-    cout << fixed;
-    cout << "\n====================\nQuadruped trajectory:\n====================\n";
+    //using namespace std;
+    //cout.precision(2);
+    //nlp.PrintCurrent(); // view variable-set, constraint violations, indices,...
+    //cout << fixed;
+    //cout << "\n====================\nQuadruped trajectory:\n====================\n";
 
-    double t = 0.0;
-    while (t<=solution.base_linear_->GetTotalTime() + 1e-5) {
-        cout << "t=" << t << "\n";
-        cout << "Base linear position x,y,z:   \t";
-        cout << solution.base_linear_->GetPoint(t).p().transpose() << "\t[m]" << endl;
-        
-        cout << "Base linear velocity:         \t";
-        cout << solution.base_linear_->GetPoint(t).v().transpose() << "\t[m]" << endl;
-        
-        cout << "Base linear acceleration:     \t";
-        cout << solution.base_linear_->GetPoint(t).a().transpose() << "\t[m]" << endl;
+    //double t = 0.0;
+    //while (t<=solution.base_linear_->GetTotalTime() + 1e-5) {
+    //    cout << "t=" << t << "\n";
+    //    cout << "Base linear position x,y,z:   \t";
+    //    cout << solution.base_linear_->GetPoint(t).p().transpose() << "\t[m]" << endl;
+    //    
+    //    cout << "Base linear velocity:         \t";
+    //    cout << solution.base_linear_->GetPoint(t).v().transpose() << "\t[m]" << endl;
+    //    
+    //    cout << "Base linear acceleration:     \t";
+    //    cout << solution.base_linear_->GetPoint(t).a().transpose() << "\t[m]" << endl;
 
-        cout << "Base Euler roll, pitch, yaw:  \t";
-        Eigen::Vector3d rad = solution.base_angular_->GetPoint(t).p();
-        cout << (rad/M_PI*180).transpose() << "\t[deg]" << endl;
+    //    cout << "Base Euler roll, pitch, yaw:  \t";
+    //    Eigen::Vector3d rad = solution.base_angular_->GetPoint(t).p();
+    //    cout << (rad/M_PI*180).transpose() << "\t[deg]" << endl;
 
-        //cout << "Foot position x,y,z:          \t";
-        //cout << solution.ee_motion_.at(0)->GetPoint(t).p().transpose() << "\t[m]" << endl;
+    //    //cout << "Foot position x,y,z:          \t";
+    //    //cout << solution.ee_motion_.at(0)->GetPoint(t).p().transpose() << "\t[m]" << endl;
 
-        //cout << "Contact force x,y,z:          \t";
-        //cout << solution.ee_force_.at(0)->GetPoint(t).p().transpose() << "\t[N]" << endl;
+    //    //cout << "Contact force x,y,z:          \t";
+    //    //cout << solution.ee_force_.at(0)->GetPoint(t).p().transpose() << "\t[N]" << endl;
 
-        //bool contact = solution.phase_durations_.at(0)->IsContactPhase(t);
-        //std::string foot_in_contact = contact? "yes" : "no";
-        //cout << "Foot in contact:              \t" + foot_in_contact << endl;
+    //    //bool contact = solution.phase_durations_.at(0)->IsContactPhase(t);
+    //    //std::string foot_in_contact = contact? "yes" : "no";
+    //    //cout << "Foot in contact:              \t" + foot_in_contact << endl;
 
-        cout << endl;
+    //    cout << endl;
 
-        t += 0.2;
-    }
+    //    t += 0.2;
+    //}
 }
 

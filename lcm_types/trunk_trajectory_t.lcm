@@ -1,6 +1,0 @@
-
-struct trunk_trajectory_t 
-{
-    int64_t num_steps;
-    trunk_state_t state_sequence[num_steps];
-}

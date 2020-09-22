@@ -1,8 +1,10 @@
-//package trunklcm;
+package trunklcm;
 
 struct trunk_state_t
 {
     double timestamp;
+
+    boolean finished;  // indicate that this is the end of the trajectory
 
     // Base linear position/velocity/accel
     double base_p[3];

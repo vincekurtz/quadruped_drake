@@ -9,7 +9,7 @@
 #include <Eigen/Dense>
 
 #include <lcm/lcm-cpp.hpp>
-#include "lcm/exlcm/example_t.hpp"
+#include "lcm_types/exlcm/example_t.hpp"
 
 
 using namespace towr;

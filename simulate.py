@@ -2,7 +2,7 @@
 
 from pydrake.all import *
 from controllers import QPController
-from planners import BasicTrunkPlanner
+from planners import BasicTrunkPlanner, TowrTrunkPlanner
 import os
 
 # Drake only loads things relative to the drake path, so we have to do some hacking
@@ -18,7 +18,7 @@ builder = DiagramBuilder()
 scene_graph = builder.AddSystem(SceneGraph())
 dt = 2e-3
 plant = builder.AddSystem(MultibodyPlant(time_step=dt))
-plant.RegisterAsSourceForSceneGraph(scene_graph)
+plant.RegisterAsSourceForSceneGraph(scene_graph) 
 quad = Parser(plant=plant).AddModelFromFile(robot_urdf,"quad")
 
 # Add a flat ground with friction
@@ -55,7 +55,7 @@ builder.Connect(
         scene_graph.get_source_pose_port(plant.get_source_id()))
 
 # Create high-level trunk-model planner and low-level whole-body controller
-planner = builder.AddSystem(BasicTrunkPlanner())
+planner = builder.AddSystem(TowrTrunkPlanner())
 controller = builder.AddSystem(QPController(plant,dt))
 
 # Connect the trunk-model planner to the controller
@@ -97,4 +97,4 @@ qd0 = np.zeros(plant.num_velocities())
 plant.SetPositions(plant_context,q0)
 plant.SetVelocities(plant_context,qd0)
 
-simulator.AdvanceTo(10.0)
+simulator.AdvanceTo(0.1)

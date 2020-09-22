@@ -97,4 +97,4 @@ qd0 = np.zeros(plant.num_velocities())
 plant.SetPositions(plant_context,q0)
 plant.SetVelocities(plant_context,qd0)
 
-simulator.AdvanceTo(0.1)
+simulator.AdvanceTo(2.0)

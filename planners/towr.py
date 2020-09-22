@@ -17,6 +17,7 @@ class TowrTrunkPlanner(BasicTrunkPlanner):
         # Set up LCM subscriber to read optimal trajectory from TOWR
         self.lc = lcm.LCM()
         subscription = self.lc.subscribe("trunk_state", self.lcm_handler)
+        subscription.set_queue_capacity(0)   # disable the queue limit, since we'll process many messages from TOWR
 
         # Set up storage of optimal trajectory
         self.traj_finished = False
@@ -48,7 +49,7 @@ class TowrTrunkPlanner(BasicTrunkPlanner):
         # gait, total trajectory time, etc
         
         # Run the trajectory optimization (TOWR)
-        sub.call(["build/test"],stdout=sub.DEVNULL)
+        sub.call(["build/solve_trunk_mpc"])  # supress otuput with stdout=sub.DEVNULL
 
         # Read the result over LCM
         self.traj_finished = False  # clear out any stored data
@@ -64,8 +65,10 @@ class TowrTrunkPlanner(BasicTrunkPlanner):
 
         # Find the timestamp in the (stored) TOWR trajectory that is closest 
         # to the curren time
-        closest_towr_t = self.towr_timestamps[np.abs(np.array(self.towr_timestamps)-t).argmin()]
-        print(closest_towr_t)
+        closest_index = np.abs(np.array(self.towr_timestamps)-t).argmin()
+        closest_towr_t = self.towr_timestamps[closest_index]
+        closest_towr_data = self.towr_data[closest_index]
+        print(closest_towr_data.rh_p)
 
         if context.get_time() < 5:
             self.OrientationTest(output_dict, context.get_time())

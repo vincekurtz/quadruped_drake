@@ -1,0 +1,174 @@
+#include <cmath>
+#include <iostream>
+
+#include <towr/terrain/examples/height_map_examples.h>
+#include <towr/nlp_formulation.h>
+#include <ifopt/ipopt_solver.h>
+
+#include <towr/initialization/gait_generator.h>
+#include <towr/models/endeffector_mappings.h>
+#include <Eigen/Dense>
+
+#include <lcm/lcm-cpp.hpp>
+#include "lcm_types/trunklcm/trunk_state_t.hpp"
+
+
+using namespace towr;
+
+// Generate a trunk-model trajectory for a quadruped using TOWR, and send the results
+// over LCM, where they can be read by Drake. 
+int main() {
+
+    NlpFormulation formulation;
+
+    // terrain
+    formulation.terrain_ = std::make_shared<FlatGround>(0.0);
+
+    // Kinematic limits and dynamic parameters
+    formulation.model_ = RobotModel(RobotModel::Anymal);   // TODO: use mini cheetah
+
+    // initial position
+    auto nominal_stance_B = formulation.model_.kinematic_model_->GetNominalStanceInBase(); 
+    double z_ground = 0.0;
+    formulation.initial_ee_W_ = nominal_stance_B;
+    std::for_each(formulation.initial_ee_W_.begin(), formulation.initial_ee_W_.end(),
+            [&](Eigen::Vector3d& p){ p.z() = z_ground; } // feet at 0 height
+    );
+    formulation.initial_base_.lin.at(kPos).z() = - nominal_stance_B.front().z() + z_ground;
+
+    // desired goal state
+    formulation.final_base_.lin.at(towr::kPos) << 1.0, 0.0, 0.5;
+
+    // Total duration of the movement
+    double total_duration = 2.0;
+
+    // Parameters defining contact sequence and default durations. We use
+    // a GaitGenerator with some predifined gaits
+    auto gait_gen_ = GaitGenerator::MakeGaitGenerator(4);
+    auto id_gait   = static_cast<GaitGenerator::Combos>(0); // TODO: figure out what different gaits are
+    gait_gen_->SetCombo(id_gait);
+    for (int ee=0; ee<4; ++ee) {
+        formulation.params_.ee_phase_durations_.push_back(gait_gen_->GetPhaseDurations(total_duration, ee));
+        formulation.params_.ee_in_contact_at_start_.push_back(gait_gen_->IsInContactAtStart(ee));
+    }
+
+    // Indicate whether to optimize over gaits as well
+    //formulation.params_.OptimizePhaseDurations();
+
+    // Initialize the nonlinear-programming problem with the variables,
+    // constraints and costs.
+    ifopt::Problem nlp;
+    SplineHolder solution;
+    for (auto c : formulation.GetVariableSets(solution))
+        nlp.AddVariableSet(c);
+    for (auto c : formulation.GetConstraints(solution))
+        nlp.AddConstraintSet(c);
+    for (auto c : formulation.GetCosts())
+        nlp.AddCostSet(c);
+
+    // Choose ifopt solver (IPOPT or SNOPT), set some parameters and solve.
+    // solver->SetOption("derivative_test", "first-order");
+    auto solver = std::make_shared<ifopt::IpoptSolver>();
+    solver->SetOption("jacobian_approximation", "exact"); // "finite difference-values"
+    solver->SetOption("max_cpu_time", 20.0);
+    solver->Solve(nlp);
+    
+    // Send solution over LCM
+    lcm::LCM lcm;
+    trunklcm::trunk_state_t state;
+
+    double dt = 0.01;
+    for (double t=0; t<total_duration; t=t+dt) {
+        state.finished = false;
+        state.timestamp = t;
+      
+        // Base linear position/vel/accel
+        Eigen::Map<Eigen::VectorXd>(&state.base_p[0], 3) = solution.base_linear_->GetPoint(t).p();
+        Eigen::Map<Eigen::VectorXd>(&state.base_pd[0], 3) = solution.base_linear_->GetPoint(t).v();
+        Eigen::Map<Eigen::VectorXd>(&state.base_pdd[0], 3) = solution.base_linear_->GetPoint(t).a();
+
+        // Base angular position/vel/accel
+        Eigen::Map<Eigen::VectorXd>(&state.base_rpy[0], 3) = solution.base_angular_->GetPoint(t).p();
+        Eigen::Map<Eigen::VectorXd>(&state.base_rpyd[0], 3) = solution.base_angular_->GetPoint(t).v();
+        Eigen::Map<Eigen::VectorXd>(&state.base_rpydd[0], 3) = solution.base_angular_->GetPoint(t).a();
+
+        // Foot positions
+        Eigen::Map<Eigen::VectorXd>(&state.lf_p[0], 3) = solution.ee_motion_.at(LF)->GetPoint(t).p();
+        Eigen::Map<Eigen::VectorXd>(&state.rf_p[0], 3) = solution.ee_motion_.at(RF)->GetPoint(t).p();
+        Eigen::Map<Eigen::VectorXd>(&state.lh_p[0], 3) = solution.ee_motion_.at(LH)->GetPoint(t).p();
+        Eigen::Map<Eigen::VectorXd>(&state.rh_p[0], 3) = solution.ee_motion_.at(RH)->GetPoint(t).p();
+
+        // Foot velocities
+        Eigen::Map<Eigen::VectorXd>(&state.lf_pd[0], 3) = solution.ee_motion_.at(LF)->GetPoint(t).v();
+        Eigen::Map<Eigen::VectorXd>(&state.rf_pd[0], 3) = solution.ee_motion_.at(RF)->GetPoint(t).v();
+        Eigen::Map<Eigen::VectorXd>(&state.lh_pd[0], 3) = solution.ee_motion_.at(LH)->GetPoint(t).v();
+        Eigen::Map<Eigen::VectorXd>(&state.rh_pd[0], 3) = solution.ee_motion_.at(RH)->GetPoint(t).v();
+
+        // Foot accelerations
+        Eigen::Map<Eigen::VectorXd>(&state.lf_pdd[0], 3) = solution.ee_motion_.at(LF)->GetPoint(t).a();
+        Eigen::Map<Eigen::VectorXd>(&state.rf_pdd[0], 3) = solution.ee_motion_.at(RF)->GetPoint(t).a();
+        Eigen::Map<Eigen::VectorXd>(&state.lh_pdd[0], 3) = solution.ee_motion_.at(LH)->GetPoint(t).a();
+        Eigen::Map<Eigen::VectorXd>(&state.rh_pdd[0], 3) = solution.ee_motion_.at(RH)->GetPoint(t).a();
+
+        // Foot contact states
+        state.lf_contact = solution.phase_durations_.at(LF)->IsContactPhase(t);
+        state.rf_contact = solution.phase_durations_.at(RF)->IsContactPhase(t);
+        state.lh_contact = solution.phase_durations_.at(LH)->IsContactPhase(t);
+        state.rh_contact = solution.phase_durations_.at(RH)->IsContactPhase(t);
+
+        // Foot contact forces
+        Eigen::Map<Eigen::VectorXd>(&state.lf_f[0], 3) = solution.ee_force_.at(LF)->GetPoint(t).p();
+        Eigen::Map<Eigen::VectorXd>(&state.rf_f[0], 3) = solution.ee_force_.at(RF)->GetPoint(t).p();
+        Eigen::Map<Eigen::VectorXd>(&state.lh_f[0], 3) = solution.ee_force_.at(LH)->GetPoint(t).p();
+        Eigen::Map<Eigen::VectorXd>(&state.rh_f[0], 3) = solution.ee_force_.at(RH)->GetPoint(t).p();
+
+        lcm.publish("trunk_state", &state);
+    }
+
+    // send one final message including the finished flag
+    state.finished = true;
+    double t = total_duration;  
+
+    // Base linear position/vel/accel
+    Eigen::Map<Eigen::VectorXd>(&state.base_p[0], 3) = solution.base_linear_->GetPoint(t).p();
+    Eigen::Map<Eigen::VectorXd>(&state.base_pd[0], 3) = solution.base_linear_->GetPoint(t).v();
+    Eigen::Map<Eigen::VectorXd>(&state.base_pdd[0], 3) = solution.base_linear_->GetPoint(t).a();
+
+    // Base angular position/vel/accel
+    Eigen::Map<Eigen::VectorXd>(&state.base_rpy[0], 3) = solution.base_angular_->GetPoint(t).p();
+    Eigen::Map<Eigen::VectorXd>(&state.base_rpyd[0], 3) = solution.base_angular_->GetPoint(t).v();
+    Eigen::Map<Eigen::VectorXd>(&state.base_rpydd[0], 3) = solution.base_angular_->GetPoint(t).a();
+
+    // Foot positions
+    Eigen::Map<Eigen::VectorXd>(&state.lf_p[0], 3) = solution.ee_motion_.at(LF)->GetPoint(t).p();
+    Eigen::Map<Eigen::VectorXd>(&state.rf_p[0], 3) = solution.ee_motion_.at(RF)->GetPoint(t).p();
+    Eigen::Map<Eigen::VectorXd>(&state.lh_p[0], 3) = solution.ee_motion_.at(LH)->GetPoint(t).p();
+    Eigen::Map<Eigen::VectorXd>(&state.rh_p[0], 3) = solution.ee_motion_.at(RH)->GetPoint(t).p();
+
+    // Foot velocities
+    Eigen::Map<Eigen::VectorXd>(&state.lf_pd[0], 3) = solution.ee_motion_.at(LF)->GetPoint(t).v();
+    Eigen::Map<Eigen::VectorXd>(&state.rf_pd[0], 3) = solution.ee_motion_.at(RF)->GetPoint(t).v();
+    Eigen::Map<Eigen::VectorXd>(&state.lh_pd[0], 3) = solution.ee_motion_.at(LH)->GetPoint(t).v();
+    Eigen::Map<Eigen::VectorXd>(&state.rh_pd[0], 3) = solution.ee_motion_.at(RH)->GetPoint(t).v();
+
+    // Foot accelerations
+    Eigen::Map<Eigen::VectorXd>(&state.lf_pdd[0], 3) = solution.ee_motion_.at(LF)->GetPoint(t).a();
+    Eigen::Map<Eigen::VectorXd>(&state.rf_pdd[0], 3) = solution.ee_motion_.at(RF)->GetPoint(t).a();
+    Eigen::Map<Eigen::VectorXd>(&state.lh_pdd[0], 3) = solution.ee_motion_.at(LH)->GetPoint(t).a();
+    Eigen::Map<Eigen::VectorXd>(&state.rh_pdd[0], 3) = solution.ee_motion_.at(RH)->GetPoint(t).a();
+
+    // Foot contact states
+    state.lf_contact = solution.phase_durations_.at(LF)->IsContactPhase(t);
+    state.rf_contact = solution.phase_durations_.at(RF)->IsContactPhase(t);
+    state.lh_contact = solution.phase_durations_.at(LH)->IsContactPhase(t);
+    state.rh_contact = solution.phase_durations_.at(RH)->IsContactPhase(t);
+
+    // Foot contact forces
+    Eigen::Map<Eigen::VectorXd>(&state.lf_f[0], 3) = solution.ee_force_.at(LF)->GetPoint(t).p();
+    Eigen::Map<Eigen::VectorXd>(&state.rf_f[0], 3) = solution.ee_force_.at(RF)->GetPoint(t).p();
+    Eigen::Map<Eigen::VectorXd>(&state.lh_f[0], 3) = solution.ee_force_.at(LH)->GetPoint(t).p();
+    Eigen::Map<Eigen::VectorXd>(&state.rh_f[0], 3) = solution.ee_force_.at(RH)->GetPoint(t).p();
+
+
+    lcm.publish("trunk_state", &state);
+}

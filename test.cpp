@@ -8,12 +8,34 @@
 #include <towr/initialization/gait_generator.h>
 #include <Eigen/Dense>
 
+#include <lcm/lcm-cpp.hpp>
+#include "lcm/exlcm/example_t.hpp"
+
 
 using namespace towr;
 
 // A simple example of generating a trunk-model trajectory for a quadruped, and
 // sending the results to Drake.
 int main() {
+
+    // Test LCM for communication with drake
+    lcm::LCM lcm;
+    exlcm::example_t my_data;
+    my_data.timestamp = 0;
+    my_data.position[0] = 1;
+    my_data.position[1] = 2;
+    my_data.position[2] = 3;
+    my_data.orientation[0] = 1;
+    my_data.orientation[1] = 0;
+    my_data.orientation[2] = 0;
+    my_data.orientation[3] = 0;
+    my_data.num_ranges = 15;
+    my_data.ranges.resize(my_data.num_ranges);
+    for(int i = 0; i < my_data.num_ranges; i++)
+        my_data.ranges[i] = i;
+    my_data.name = "example string";
+    my_data.enabled = true;
+    lcm.publish("EXAMPLE", &my_data);
 
     NlpFormulation formulation;
 
@@ -88,6 +110,12 @@ int main() {
         cout << "t=" << t << "\n";
         cout << "Base linear position x,y,z:   \t";
         cout << solution.base_linear_->GetPoint(t).p().transpose() << "\t[m]" << endl;
+        
+        cout << "Base linear velocity:         \t";
+        cout << solution.base_linear_->GetPoint(t).v().transpose() << "\t[m]" << endl;
+        
+        cout << "Base linear acceleration:     \t";
+        cout << solution.base_linear_->GetPoint(t).a().transpose() << "\t[m]" << endl;
 
         cout << "Base Euler roll, pitch, yaw:  \t";
         Eigen::Vector3d rad = solution.base_angular_->GetPoint(t).p();

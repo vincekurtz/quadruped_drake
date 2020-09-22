@@ -9,7 +9,9 @@
 #include <Eigen/Dense>
 
 #include <lcm/lcm-cpp.hpp>
-#include "lcm_types/exlcm/example_t.hpp"
+#include "lcm_types/trunk_state_t.hpp"
+#include "lcm_types/trunk_trajectory_t.hpp"
+
 
 
 using namespace towr;
@@ -18,24 +20,6 @@ using namespace towr;
 // sending the results to Drake.
 int main() {
 
-    // Test LCM for communication with drake
-    lcm::LCM lcm;
-    exlcm::example_t my_data;
-    my_data.timestamp = 0;
-    my_data.position[0] = 1;
-    my_data.position[1] = 2;
-    my_data.position[2] = 3;
-    my_data.orientation[0] = 1;
-    my_data.orientation[1] = 0;
-    my_data.orientation[2] = 0;
-    my_data.orientation[3] = 0;
-    my_data.num_ranges = 15;
-    my_data.ranges.resize(my_data.num_ranges);
-    for(int i = 0; i < my_data.num_ranges; i++)
-        my_data.ranges[i] = i;
-    my_data.name = "example string";
-    my_data.enabled = true;
-    lcm.publish("EXAMPLE", &my_data);
 
     NlpFormulation formulation;
 
@@ -94,6 +78,12 @@ int main() {
     solver->SetOption("jacobian_approximation", "exact"); // "finite difference-values"
     solver->SetOption("max_cpu_time", 20.0);
     solver->Solve(nlp);
+    
+    // Send solution over LCM
+    lcm::LCM lcm;
+    trunk_state_t my_data;
+    my_data.timestamp = 3.14;
+    lcm.publish("trunk_trajectory", &my_data);
 
     // Can directly view the optimization variables through:
     // Eigen::VectorXd x = nlp.GetVariableValues()

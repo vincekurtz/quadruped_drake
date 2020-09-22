@@ -2,7 +2,7 @@ from planners.simple import *
 import subprocess as sub
 
 import lcm
-from lcm_types.exlcm import example_t
+from lcm_types.trunklcm import trunk_state_t
 
 class TowrTrunkPlanner(BasicTrunkPlanner):
     """
@@ -14,14 +14,13 @@ class TowrTrunkPlanner(BasicTrunkPlanner):
 
         # Set up LCM subscriber to read optimal trajectory from TOWR
         self.lc = lcm.LCM()
-        subscription = self.lc.subscribe("EXAMPLE", self.lcm_handler)
+        subscription = self.lc.subscribe("trunk_trajectory", self.lcm_handler)
 
         self.GenerateTrunkTrajectory()
 
     def lcm_handler(self, channel, data):
-        msg = example_t.decode(data)
-        print(msg.timestamp)
-        print(msg.position)
+        msg = trunk_state_t.decode(data)
+        print("hello world")
 
     def GenerateTrunkTrajectory(self):
         """

@@ -1,0 +1,48 @@
+//package trunklcm;
+
+struct trunk_state_t
+{
+    double timestamp;
+
+    // Base linear position/velocity/accel
+    double base_p[3];
+    double base_pd[3];
+    double base_pdd[3];
+
+    // Base angular position/velocity/accel
+    double base_rpy[3];
+    double base_rpyd[3];
+    double base_rpydd[3];
+
+    // Foot positions
+    double lf_p[3];
+    double rf_p[3];
+    double lh_p[3];
+    double rh_p[3];
+
+    // Foot velocities
+    double lf_pd[3];
+    double rf_pd[3];
+    double lh_pd[3];
+    double rh_pd[3];
+    
+    // Foot accelerations
+    double lf_pdd[3];
+    double rf_pdd[3];
+    double lh_pdd[3];
+    double rh_pdd[3];
+
+    // Foot contact states
+    boolean lf_contact;
+    boolean rf_contact;
+    boolean lh_contact;
+    boolean rh_contact;
+
+    // Foot contact forces
+    double lf_f[3];
+    double rf_f[3];
+    double lh_f[3];
+    double rh_f[3];
+
+}
+

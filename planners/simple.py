@@ -51,11 +51,11 @@ class BasicTrunkPlanner(LeafSystem):
         output_dict["p_body"] = np.array([0.0, 0.0, 0.30])
 
         # Body velocities
-        output_dict["w_body"] = np.zeros(3)
+        output_dict["rpyd_body"] = np.zeros(3)
         output_dict["pd_body"] = np.zeros(3)
 
         # Body accelerations
-        output_dict["wd_body"] = np.zeros(3)
+        output_dict["rpydd_body"] = np.zeros(3)
         output_dict["pdd_body"] = np.zeros(3)
 
     def OrientationTest(self, output_dict, t):

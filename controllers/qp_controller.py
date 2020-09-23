@@ -120,12 +120,14 @@ class QPController(BasicController):
                          - 5.0*(pd_body - trunk_data["pd_body"])
 
         rpy_body = RollPitchYaw(X_body.rotation())
-        rpy_body_des = RollPitchYaw(trunk_data["rpy_body"])
         w_body = (J_body@v)[:3]   # angular velocity of the body
+        rpyd_body = rpy_body.CalcRpyDtFromAngularVelocityInParent(w_body)
 
-        wd_body_des = trunk_data["wd_body"]  \
-                        - 10.0*( rpy_body.CalcAngularVelocityInParentFromRpyDt(rpy_body.vector() - rpy_body_des.vector() )) \
-                        - 5.0*( w_body - trunk_data["w_body"] )
+        rpydd_body_des = trunk_data["rpydd_body"] \
+                            -10.0*(rpy_body.vector() - trunk_data["rpy_body"]) \
+                            - 5.0*(rpyd_body - trunk_data["rpyd_body"])
+
+        wd_body_des = rpy_body.CalcAngularVelocityInParentFromRpyDt(rpydd_body_des)
 
         # Note current foot positions, Jacobians, etc
         p_lf, J_lf, Jdv_lf = self.CalcFramePositionQuantities(self.lf_foot_frame)

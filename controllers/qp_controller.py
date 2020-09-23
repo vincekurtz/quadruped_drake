@@ -90,7 +90,7 @@ class QPController(BasicController):
 
             J_c[j]*vd + Jdv_c[j] == -Kd*J_c[j]*v
         """
-        Kd = 100*np.eye(3)
+        Kd = 1*np.eye(3)
 
         num_contacts = len(J_c)
         for j in range(num_contacts):
@@ -116,16 +116,16 @@ class QPController(BasicController):
         p_body = X_body.translation()
         pd_body = (J_body@v)[3:]
         pdd_body_des = trunk_data["pdd_body"]  \
-                         - 10.0*(p_body - trunk_data["p_body"]) \
-                         - 5.0*(pd_body - trunk_data["pd_body"])
+                         - 100.0*(p_body - trunk_data["p_body"]) \
+                         - 50.0*(pd_body - trunk_data["pd_body"])
 
         rpy_body = RollPitchYaw(X_body.rotation())
         w_body = (J_body@v)[:3]   # angular velocity of the body
         rpyd_body = rpy_body.CalcRpyDtFromAngularVelocityInParent(w_body)
 
         rpydd_body_des = trunk_data["rpydd_body"] \
-                            -10.0*(rpy_body.vector() - trunk_data["rpy_body"]) \
-                            - 5.0*(rpyd_body - trunk_data["rpyd_body"])
+                            -100.0*(rpy_body.vector() - trunk_data["rpy_body"]) \
+                            -50.0*(rpyd_body - trunk_data["rpyd_body"])
 
         wd_body_des = rpy_body.CalcAngularVelocityInParentFromRpyDt(rpydd_body_des)
 
@@ -158,6 +158,10 @@ class QPController(BasicController):
         J_s = J_feet[swing_feet]
         Jdv_s = Jdv_feet[swing_feet]
 
+        print(p_s.reshape(num_swing,3))
+        print(p_des_feet[swing_feet])
+        print("")
+
         # Set desired accelerations for swing feet
         pdd_s_des = pdd_des_feet[swing_feet] \
                         - 10.0* (p_s.reshape(num_swing,3) - p_des_feet[swing_feet]) \
@@ -180,20 +184,21 @@ class QPController(BasicController):
 
         # min || J_body*vd + Jd_body*v - pdd_body_des \|^2
         vd_body_des = np.hstack([wd_body_des,pdd_body_des])   # desired spatial acceleration of the body
-        self.AddJacobianTypeCost(J_body, vd, Jdv_body, vd_body_des)
+        self.AddJacobianTypeCost(J_body, vd, Jdv_body, vd_body_des, weight=10)
 
         # min || J_s*vd+ Jd_s*v - pdd_s_des ||^2
         for i in range(num_swing):
-            self.AddJacobianTypeCost(J_s[i], vd, Jdv_s[i], pdd_s_des[i])
+            self.AddJacobianTypeCost(J_s[i], vd, Jdv_s[i], pdd_s_des[i], weight=100)
 
         # s.t.  M*vd + Cv + tau_g = S'*tau + sum(J_c[j]'*f_c[j])
         self.AddDynamicsConstraint(M, vd, Cv, tau_g, S, tau, J_c, f_c)
 
-        # s.t. f_c[j] in friction cones
-        self.AddFrictionPyramidConstraint(f_c)
+        if any(contact_feet):
+            # s.t. f_c[j] in friction cones
+            self.AddFrictionPyramidConstraint(f_c)
 
-        # s.t. J_cj*vd + Jd_cj*v == 0 (relaxed, + some daming)
-        self.AddContactConstraint(J_c, vd, Jdv_c, v)
+            # s.t. J_cj*vd + Jd_cj*v == 0 (relaxed, + some daming)
+            self.AddContactConstraint(J_c, vd, Jdv_c, v)
 
         result = self.solver.Solve(self.mp)
         assert result.is_success()

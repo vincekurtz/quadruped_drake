@@ -7,9 +7,9 @@ import os
 
 # Drake only loads things relative to the drake path, so we have to do some hacking
 # to load an arbitrary file
-#robot_description_path = "./models/anymal_b_simple_description/urdf/anymal_drake.urdf" # relative to this file
+robot_description_path = "./models/anymal_b_simple_description/urdf/anymal_drake.urdf" # relative to this file
 #robot_description_path = "./models/mini_cheetah/mini_cheetah_simple_v2.urdf"
-robot_description_path = "./models/mini_cheetah/mini_cheetah_mesh.urdf"
+#robot_description_path = "./models/mini_cheetah/mini_cheetah_mesh.urdf"
 drake_path = getDrakePath()
 robot_description_file = "drake/" + os.path.relpath(robot_description_path, start=drake_path)
 
@@ -24,7 +24,7 @@ quad = Parser(plant=plant).AddModelFromFile(robot_urdf,"quad")
 # Add a flat ground with friction
 X_BG = RigidTransform()
 surface_friction = CoulombFriction(
-        static_friction = 0.7,
+        static_friction = 1.5,
         dynamic_friction = 0.1)
 plant.RegisterCollisionGeometry(
         plant.world_body(),      # the body for which this object is registered
@@ -83,16 +83,21 @@ diagram_context = diagram.CreateDefaultContext()
 
 # Simulator setup
 simulator = Simulator(diagram, diagram_context)
-simulator.set_target_realtime_rate(1.0)
+simulator.set_target_realtime_rate(0.25)
 simulator.set_publish_every_time_step(False)
 
 # Set initial states
 plant_context = diagram.GetMutableSubsystemContext(plant, diagram_context)
+#q0 = np.asarray([ 1.0, 0.0, 0.0, 0.0,     # base orientation
+#                  0.0, 0.0, 0.3,          # base position
+#                  0.0, 0.0, 0.0, 0.0,     # ad/ab
+#                 -0.8,-0.8,-0.8,-0.8,     # hip
+#                  1.6, 1.6, 1.6, 1.6])    # knee
 q0 = np.asarray([ 1.0, 0.0, 0.0, 0.0,     # base orientation
-                  0.0, 0.0, 0.3,          # base position
-                  0.0, 0.0, 0.0, 0.0,     # ad/ab
-                 -0.8,-0.8,-0.8,-0.8,     # hip
-                  1.6, 1.6, 1.6, 1.6])    # knee
+                  0.0, 0.0, 0.4,          # base position
+                 -0.1, 0.1,-0.1, 0.1,     # ad/ab
+                  1.0, 1.0,-1.0,-1.0,     # hip
+                 -1.4,-1.4, 1.4, 1.4])    # knee
 qd0 = np.zeros(plant.num_velocities())
 plant.SetPositions(plant_context,q0)
 plant.SetVelocities(plant_context,qd0)

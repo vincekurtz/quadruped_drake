@@ -37,7 +37,7 @@ class BasicController(LeafSystem):
 
         # Relevant frames for the CoM and each foot
         self.world_frame = self.plant.world_frame()
-        self.body_frame = self.plant.GetFrameByName("body")
+        self.body_frame = self.plant.GetFrameByName("base")   # "body" for mini cheetah, "base" for ANYmal
 
         self.lf_foot_frame = self.plant.GetFrameByName("LF_FOOT")  # left front
         self.rf_foot_frame = self.plant.GetFrameByName("RF_FOOT")  # right front

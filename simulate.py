@@ -55,8 +55,7 @@ builder.Connect(
         scene_graph.get_source_pose_port(plant.get_source_id()))
 
 # Create high-level trunk-model planner and low-level whole-body controller
-#planner = builder.AddSystem(TowrTrunkPlanner())
-planner = builder.AddSystem(BasicTrunkPlanner())
+planner = builder.AddSystem(TowrTrunkPlanner())
 controller = builder.AddSystem(QPController(plant,dt))
 
 # Connect the trunk-model planner to the controller
@@ -98,4 +97,4 @@ qd0 = np.zeros(plant.num_velocities())
 plant.SetPositions(plant_context,q0)
 plant.SetVelocities(plant_context,qd0)
 
-simulator.AdvanceTo(10.0)
+simulator.AdvanceTo(2.0)

@@ -67,11 +67,43 @@ class TowrTrunkPlanner(BasicTrunkPlanner):
         # to the curren time
         closest_index = np.abs(np.array(self.towr_timestamps)-t).argmin()
         closest_towr_t = self.towr_timestamps[closest_index]
-        closest_towr_data = self.towr_data[closest_index]
-        print(closest_towr_data.rh_p)
+        data = self.towr_data[closest_index]
 
-        if context.get_time() < 5:
-            self.OrientationTest(output_dict, context.get_time())
-        else:
-            self.RaiseFoot(output_dict)
+        # Unpack the TOWR-generated trajectory into the dictionary format that
+        # we'll pass to the controller
 
+        # Foot positions
+        output_dict["p_lf"] = np.array(data.lf_p)
+        output_dict["p_rf"] = np.array(data.rf_p)
+        output_dict["p_lh"] = np.array(data.lh_p)
+        output_dict["p_rh"] = np.array(data.rh_p)
+
+        # Foot velocities
+        output_dict["pd_lf"] = np.array(data.lf_pd)
+        output_dict["pd_rf"] = np.array(data.rf_pd)
+        output_dict["pd_lh"] = np.array(data.lh_pd)
+        output_dict["pd_rh"] = np.array(data.rh_pd)
+        
+        # Foot accelerations
+        output_dict["pdd_lf"] = np.array(data.lf_pdd)
+        output_dict["pdd_rf"] = np.array(data.rf_pdd)
+        output_dict["pdd_lh"] = np.array(data.lh_pdd)
+        output_dict["pdd_rh"] = np.array(data.rh_pdd)
+
+        # Foot contact states: [lf,rf,lh,rh], True indicates being in contact.
+        output_dict["contact_states"] = [data.lf_contact, data.rf_contact, data.lh_contact, data.rh_contact]
+
+        # Foot contact forces, where each row corresponds to a foot [lf,rf,lh,rh].
+        output_dict["f_cj"] = np.vstack([np.array(data.lf_f), np.array(data.rf_f), np.array(data.lh_f), np.array(data.rh_f)]).T
+
+        # Body pose
+        output_dict["rpy_body"] = np.array(data.base_rpy)
+        output_dict["p_body"] = np.array(data.base_p)
+
+        # Body velocities
+        output_dict["rpyd_body"] = np.array(data.base_rpyd)
+        output_dict["pd_body"] = np.array(data.base_pd)
+
+        # Body accelerations
+        output_dict["rpydd_body"] = np.array(data.base_rpydd)
+        output_dict["pdd_body"] = np.array(data.base_pdd)

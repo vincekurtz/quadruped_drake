@@ -104,6 +104,22 @@ class QPController(BasicController):
         q = self.plant.GetPositions(self.context)
         v = self.plant.GetVelocities(self.context)
 
+        ######### Tuning Parameters #########
+
+        Kp_body_p = 100.0
+        Kd_body_p = 5.0
+
+        Kp_body_rpy = Kp_body_p
+        Kd_body_rpy = Kd_body_p
+
+        Kp_foot = 50.0
+        Kd_foot = 10.0
+
+        w_body = 1.0
+        w_foot = 1.0
+
+        #####################################
+
         # Compute Dynamics Quantities
         M, Cv, tau_g, S = self.CalcDynamics()
 
@@ -116,16 +132,16 @@ class QPController(BasicController):
         p_body = X_body.translation()
         pd_body = (J_body@v)[3:]
         pdd_body_des = trunk_data["pdd_body"]  \
-                         - 100.0*(p_body - trunk_data["p_body"]) \
-                         - 5.0*(pd_body - trunk_data["pd_body"])
+                         - Kp_body_p*(p_body - trunk_data["p_body"]) \
+                         - Kd_body_p*(pd_body - trunk_data["pd_body"])
 
         rpy_body = RollPitchYaw(X_body.rotation())
-        w_body = (J_body@v)[:3]   # angular velocity of the body
-        rpyd_body = rpy_body.CalcRpyDtFromAngularVelocityInParent(w_body)
+        omega_body = (J_body@v)[:3]   # angular velocity of the body
+        rpyd_body = rpy_body.CalcRpyDtFromAngularVelocityInParent(omega_body)
 
         rpydd_body_des = trunk_data["rpydd_body"] \
-                            -100.0*(rpy_body.vector() - trunk_data["rpy_body"]) \
-                            -5.0*(rpyd_body - trunk_data["rpyd_body"])
+                            - Kp_body_rpy*(rpy_body.vector() - trunk_data["rpy_body"]) \
+                            - Kd_body_rpy*(rpyd_body - trunk_data["rpyd_body"])
 
         wd_body_des = rpy_body.CalcAngularVelocityInParentFromRpyDt(rpydd_body_des)
 
@@ -160,13 +176,13 @@ class QPController(BasicController):
 
         # Set desired accelerations for swing feet
         pdd_s_des = pdd_des_feet[swing_feet] \
-                        - 50.0* (p_s.reshape(num_swing,3) - p_des_feet[swing_feet]) \
-                        - 1.0* (J_s@v - pd_des_feet[swing_feet])
+                        - Kp_foot* (p_s.reshape(num_swing,3) - p_des_feet[swing_feet]) \
+                        - Kd_foot* (J_s@v - pd_des_feet[swing_feet])
 
         # Set up the QP
         #   minimize:
-        #       w_1* || J_body*vd + Jd_body*v - vd_body_des ||^2 +
-        #       w_2* || J_s*vd+ Jd_s*v - pdd_s_des ||^2
+        #       w_body* || J_body*vd + Jd_body*v - vd_body_des ||^2 +
+        #       w_foot* || J_s*vd+ Jd_s*v - pdd_s_des ||^2
         #   subject to:
         #        M*vd + Cv + tau_g = S'*tau + sum(J'*f)
         #        f \in friction cones
@@ -180,11 +196,11 @@ class QPController(BasicController):
 
         # min || J_body*vd + Jd_body*v - pdd_body_des \|^2
         vd_body_des = np.hstack([wd_body_des,pdd_body_des])   # desired spatial acceleration of the body
-        self.AddJacobianTypeCost(J_body, vd, Jdv_body, vd_body_des, weight=10)
+        self.AddJacobianTypeCost(J_body, vd, Jdv_body, vd_body_des, weight=w_body)
 
         # min || J_s*vd+ Jd_s*v - pdd_s_des ||^2
         for i in range(num_swing):
-            self.AddJacobianTypeCost(J_s[i], vd, Jdv_s[i], pdd_s_des[i], weight=10)
+            self.AddJacobianTypeCost(J_s[i], vd, Jdv_s[i], pdd_s_des[i], weight=w_foot)
 
         # s.t.  M*vd + Cv + tau_g = S'*tau + sum(J_c[j]'*f_c[j])
         self.AddDynamicsConstraint(M, vd, Cv, tau_g, S, tau, J_c, f_c)
@@ -193,7 +209,7 @@ class QPController(BasicController):
             # s.t. f_c[j] in friction cones
             self.AddFrictionPyramidConstraint(f_c)
 
-            # s.t. J_cj*vd + Jd_cj*v == 0 (relaxed, + some daming)
+            # s.t. J_cj*vd + Jd_cj*v == 0 (+ some daming)
             self.AddContactConstraint(J_c, vd, Jdv_c, v)
 
         result = self.solver.Solve(self.mp)
@@ -201,6 +217,3 @@ class QPController(BasicController):
         tau = result.GetSolution(tau)
 
         output.SetFromVector(tau)
-
-        # DEBUG: just call parent methods and generate pd torques
-        #BasicController.DoSetControlTorques(self, context, output)

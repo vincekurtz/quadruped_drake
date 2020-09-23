@@ -24,7 +24,6 @@ class BasicTrunkPlanner(LeafSystem):
         # trunk model to the scene graph for visualization
         fpv = FramePoseVector()
         for frame in self.frame_ids:
-            print(frame)
             fpv.set_value(frame_ids[frame], RigidTransform())
 
         self.DeclareAbstractOutputPort(

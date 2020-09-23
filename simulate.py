@@ -9,7 +9,8 @@ show_trunk_model = True
 
 # Drake only loads things relative to the drake path, so we have to do some hacking
 # to load an arbitrary file
-robot_description_path = "./models/anymal_b_simple_description/urdf/anymal_drake.urdf" # relative to this file
+#robot_description_path = "./models/anymal_b_simple_description/urdf/anymal_drake.urdf" # relative to this file
+robot_description_path = "./models/anymal_b_simple_description/urdf/anymal_drake_no_collision.urdf" # relative to this file
 #robot_description_path = "./models/mini_cheetah/mini_cheetah_simple_v2.urdf"
 #robot_description_path = "./models/mini_cheetah/mini_cheetah_mesh.urdf"
 drake_path = getDrakePath()

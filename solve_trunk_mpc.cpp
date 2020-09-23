@@ -97,7 +97,7 @@ int main() {
     // Parameters defining contact sequence and default durations. We use
     // a GaitGenerator with some predifined gaits
     auto gait_gen_ = GaitGenerator::MakeGaitGenerator(4);
-    auto id_gait   = static_cast<GaitGenerator::Combos>(1); // 0=walk, 1=flying trot, 2=pace, 3=bound, 4=gallop
+    auto id_gait   = static_cast<GaitGenerator::Combos>(0); // 0=walk, 1=flying trot, 2=pace, 3=bound, 4=gallop
     gait_gen_->SetCombo(id_gait);
     for (int ee=0; ee<4; ++ee) {
         formulation.params_.ee_phase_durations_.push_back(gait_gen_->GetPhaseDurations(total_duration, ee));
@@ -129,7 +129,7 @@ int main() {
     lcm::LCM lcm;
     trunklcm::trunk_state_t state;
 
-    double dt = 0.01;
+    double dt = 2e-3;
     for (double t=0; t<total_duration; t=t+dt) {
         publish_trunk_state(solution, t);
     }

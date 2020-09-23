@@ -158,14 +158,10 @@ class QPController(BasicController):
         J_s = J_feet[swing_feet]
         Jdv_s = Jdv_feet[swing_feet]
 
-        print(p_s.reshape(num_swing,3))
-        print(p_des_feet[swing_feet])
-        print("")
-
         # Set desired accelerations for swing feet
         pdd_s_des = pdd_des_feet[swing_feet] \
-                        - 10.0* (p_s.reshape(num_swing,3) - p_des_feet[swing_feet]) \
-                        - 5.0* (J_s@v - pd_des_feet[swing_feet])
+                        - 50.0* (p_s.reshape(num_swing,3) - p_des_feet[swing_feet]) \
+                        - 10.0* (J_s@v - pd_des_feet[swing_feet])
 
         # Set up the QP
         #   minimize:
@@ -188,7 +184,7 @@ class QPController(BasicController):
 
         # min || J_s*vd+ Jd_s*v - pdd_s_des ||^2
         for i in range(num_swing):
-            self.AddJacobianTypeCost(J_s[i], vd, Jdv_s[i], pdd_s_des[i], weight=100)
+            self.AddJacobianTypeCost(J_s[i], vd, Jdv_s[i], pdd_s_des[i], weight=1)
 
         # s.t.  M*vd + Cv + tau_g = S'*tau + sum(J_c[j]'*f_c[j])
         self.AddDynamicsConstraint(M, vd, Cv, tau_g, S, tau, J_c, f_c)

@@ -7,10 +7,11 @@ class BasicTrunkPlanner(LeafSystem):
     desired positions, velocities, and accelerations for the feet, center-of-mass,
     and body frame orientation. 
     """
-    def __init__(self, trunk_geometry_frame_id):
+    def __init__(self, frame_ids):
         LeafSystem.__init__(self)
 
-        self.geom_frame_id = trunk_geometry_frame_id
+        # Dictionary of geometry frame ids {"trunk": trunk_frame_id, "lf": lf_foot_frame_id, ...}
+        self.frame_ids = frame_ids
 
         # We'll use an abstract output port so we can send all the
         # data we'd like to include in a dictionary format
@@ -22,7 +23,10 @@ class BasicTrunkPlanner(LeafSystem):
         # Another output port is used to send geometry data regarding the
         # trunk model to the scene graph for visualization
         fpv = FramePoseVector()
-        fpv.set_value(self.geom_frame_id, RigidTransform())
+        for frame in self.frame_ids:
+            print(frame)
+            fpv.set_value(frame_ids[frame], RigidTransform())
+
         self.DeclareAbstractOutputPort(
                 "trunk_geometry",
                 lambda: AbstractValue.Make(fpv),
@@ -105,8 +109,13 @@ class BasicTrunkPlanner(LeafSystem):
         fpv = output.get_mutable_value()
         fpv.clear()
        
-        X = RigidTransform()
-        X.set_rotation(RollPitchYaw(self.output_dict["rpy_body"]))
-        X.set_translation(self.output_dict["p_body"])
+        X_trunk = RigidTransform()
+        X_trunk.set_rotation(RollPitchYaw(self.output_dict["rpy_body"]))
+        X_trunk.set_translation(self.output_dict["p_body"])
         
-        fpv.set_value(self.geom_frame_id, X)
+        fpv.set_value(self.frame_ids["trunk"], X_trunk)
+
+        for foot in ["lf","rf","lh","rh"]:
+            X_foot = RigidTransform()
+            X_foot.set_translation(self.output_dict["p_%s" % foot])
+            fpv.set_value(self.frame_ids[foot],X_foot)

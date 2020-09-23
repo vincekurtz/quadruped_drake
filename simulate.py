@@ -52,20 +52,35 @@ assert plant.geometry_source_is_registered()
 trunk_source = scene_graph.RegisterSource("trunk")
 trunk_frame = GeometryFrame("trunk")
 scene_graph.RegisterFrame(trunk_source, trunk_frame)
+
 trunk_shape = Box(0.6,0.3,0.3)
-if show_trunk_model:
-    trunk_color = np.array([0.1,0.1,0.1,0.4])
-else:
-    trunk_color = np.array([0.0,0.0,0.0,0.0])
+trunk_color = np.array([0.1,0.1,0.1,0.4])
 X_trunk = RigidTransform()
 X_trunk.set_translation(np.array([0.0,0.0,0.08]))
+
 trunk_geometry = GeometryInstance(X_trunk,trunk_shape,"trunk")
-trunk_geometry.set_illustration_properties(MakePhongIllustrationProperties(trunk_color))
+if show_trunk_model:
+    trunk_geometry.set_illustration_properties(MakePhongIllustrationProperties(trunk_color))
 scene_graph.RegisterGeometry(trunk_source, trunk_frame.id(), trunk_geometry)
 
+trunk_frame_ids = {"trunk":trunk_frame.id()}
+
+for foot in ["lf","rf","lh","rh"]:
+    foot_frame = GeometryFrame(foot)
+    scene_graph.RegisterFrame(trunk_source, foot_frame)
+   
+    foot_shape = Sphere(0.03)
+    X_foot = RigidTransform()
+    foot_geometry = GeometryInstance(X_foot,foot_shape,foot)
+    if show_trunk_model:
+        foot_geometry.set_illustration_properties(MakePhongIllustrationProperties(trunk_color))
+
+    scene_graph.RegisterGeometry(trunk_source, foot_frame.id(), foot_geometry)
+    trunk_frame_ids[foot] = foot_frame.id()
+
 # Create high-level trunk-model planner and low-level whole-body controller
-#planner = builder.AddSystem(BasicTrunkPlanner(trunk_frame.id()))
-planner = builder.AddSystem(TowrTrunkPlanner(trunk_frame.id()))
+#planner = builder.AddSystem(BasicTrunkPlanner(trunk_frame_ids))
+planner = builder.AddSystem(TowrTrunkPlanner(trunk_frame_ids))
 controller = builder.AddSystem(QPController(plant,dt))
 
 # Set up the Scene Graph

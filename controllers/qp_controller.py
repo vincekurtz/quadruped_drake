@@ -16,7 +16,7 @@ class QPController(BasicController):
                 AbstractValue.Make({}))  
 
         # Set the friction coefficient
-        self.mu = 0.5
+        self.mu = 0.7
 
         # Choose a solver
         self.solver = OsqpSolver()
@@ -117,7 +117,7 @@ class QPController(BasicController):
         pd_body = (J_body@v)[3:]
         pdd_body_des = trunk_data["pdd_body"]  \
                          - 100.0*(p_body - trunk_data["p_body"]) \
-                         - 50.0*(pd_body - trunk_data["pd_body"])
+                         - 5.0*(pd_body - trunk_data["pd_body"])
 
         rpy_body = RollPitchYaw(X_body.rotation())
         w_body = (J_body@v)[:3]   # angular velocity of the body
@@ -125,7 +125,7 @@ class QPController(BasicController):
 
         rpydd_body_des = trunk_data["rpydd_body"] \
                             -100.0*(rpy_body.vector() - trunk_data["rpy_body"]) \
-                            -50.0*(rpyd_body - trunk_data["rpyd_body"])
+                            -5.0*(rpyd_body - trunk_data["rpyd_body"])
 
         wd_body_des = rpy_body.CalcAngularVelocityInParentFromRpyDt(rpydd_body_des)
 
@@ -161,7 +161,7 @@ class QPController(BasicController):
         # Set desired accelerations for swing feet
         pdd_s_des = pdd_des_feet[swing_feet] \
                         - 50.0* (p_s.reshape(num_swing,3) - p_des_feet[swing_feet]) \
-                        - 10.0* (J_s@v - pd_des_feet[swing_feet])
+                        - 1.0* (J_s@v - pd_des_feet[swing_feet])
 
         # Set up the QP
         #   minimize:
@@ -184,7 +184,7 @@ class QPController(BasicController):
 
         # min || J_s*vd+ Jd_s*v - pdd_s_des ||^2
         for i in range(num_swing):
-            self.AddJacobianTypeCost(J_s[i], vd, Jdv_s[i], pdd_s_des[i], weight=1)
+            self.AddJacobianTypeCost(J_s[i], vd, Jdv_s[i], pdd_s_des[i], weight=10)
 
         # s.t.  M*vd + Cv + tau_g = S'*tau + sum(J_c[j]'*f_c[j])
         self.AddDynamicsConstraint(M, vd, Cv, tau_g, S, tau, J_c, f_c)

@@ -24,8 +24,8 @@ quad = Parser(plant=plant).AddModelFromFile(robot_urdf,"quad")
 # Add a flat ground with friction
 X_BG = RigidTransform()
 surface_friction = CoulombFriction(
-        static_friction = 0.5,
-        dynamic_friction = 0.5)
+        static_friction = 0.7,
+        dynamic_friction = 0.7)
 plant.RegisterCollisionGeometry(
         plant.world_body(),      # the body for which this object is registered
         X_BG,                    # The fixed pose of the geometry frame G in the body frame B
@@ -46,6 +46,30 @@ plant.RegisterVisualGeometry(
 plant.Finalize()
 assert plant.geometry_source_is_registered()
 
+# DEBUG
+#inspector = scene_graph.model_inspector()
+#geometry_ids = inspector.GetAllGeometryIds()
+#il_prop = inspector.GetIllustrationProperties(geometry_ids[1])
+#print(il_prop)
+#print(il_prop.GetProperty("phong","diffuse"))
+#il_prop.UpdateProperty("phong","diffuse",Rgba(r=1.0,g=0.0,b=0.0,a=1.0))
+#print(il_prop.GetProperty("phong","diffuse"))
+
+# Add custom visualizations for the trunk model
+trunk_source = scene_graph.RegisterSource("trunk")
+trunk_frame = GeometryFrame("trunk")
+scene_graph.RegisterFrame(trunk_source, trunk_frame)
+trunk_shape = Box(0.5,0.5,0.5)
+trunk_color = np.array([0.5,0.5,0.5,0.5])
+trunk_geometry = GeometryInstance(RigidTransform(),trunk_shape,"trunk")
+trunk_geometry.set_illustration_properties(MakePhongIllustrationProperties(trunk_color))
+scene_graph.RegisterGeometry(trunk_source, trunk_frame.id(), trunk_geometry)
+
+# Create high-level trunk-model planner and low-level whole-body controller
+#planner = builder.AddSystem(TowrTrunkPlanner())
+planner = builder.AddSystem(BasicTrunkPlanner(trunk_frame.id()))
+controller = builder.AddSystem(QPController(plant,dt))
+
 # Set up the Scene Graph
 builder.Connect(
         scene_graph.get_query_output_port(),
@@ -53,13 +77,12 @@ builder.Connect(
 builder.Connect(
         plant.get_geometry_poses_output_port(),
         scene_graph.get_source_pose_port(plant.get_source_id()))
-
-# Create high-level trunk-model planner and low-level whole-body controller
-planner = builder.AddSystem(TowrTrunkPlanner())
-controller = builder.AddSystem(QPController(plant,dt))
+builder.Connect(
+        planner.GetOutputPort("trunk_geometry"),
+        scene_graph.get_source_pose_port(trunk_source))
 
 # Connect the trunk-model planner to the controller
-builder.Connect(planner.get_output_port(), controller.get_input_port(1))
+builder.Connect(planner.GetOutputPort("trunk_trajectory"), controller.get_input_port(1))
 
 # Connect the controller to the simulated plant
 builder.Connect(controller.get_output_port(),
@@ -101,5 +124,15 @@ q0 = np.asarray([ 1.0, 0.0, 0.0, 0.0,     # base orientation
 qd0 = np.zeros(plant.num_velocities())
 plant.SetPositions(plant_context,q0)
 plant.SetVelocities(plant_context,qd0)
+
+# Add some transparency to the robot
+query_object = plant.get_geometry_query_input_port().Eval(plant_context)
+inspector = query_object.inspector()
+geometry_ids = inspector.GetAllGeometryIds()
+il_prop = inspector.GetIllustrationProperties(geometry_ids[0])
+print(il_prop)
+print(il_prop.GetProperty("phong","diffuse"))
+il_prop.UpdateProperty("phong","diffuse",Rgba(r=1.0,g=0.0,b=0.0,a=1.0))
+print(il_prop.GetProperty("phong","diffuse"))
 
 simulator.AdvanceTo(2.0)

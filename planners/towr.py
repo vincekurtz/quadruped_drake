@@ -59,7 +59,7 @@ class TowrTrunkPlanner(BasicTrunkPlanner):
         while not self.traj_finished:
             self.lc.handle() 
 
-    def DoSetTrunkOutputs(self, context, output):
+    def SetTrunkOutputs(self, context, output):
         output_dict = output.get_mutable_value()
         t = context.get_time()
 

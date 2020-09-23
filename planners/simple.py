@@ -7,79 +7,104 @@ class BasicTrunkPlanner(LeafSystem):
     desired positions, velocities, and accelerations for the feet, center-of-mass,
     and body frame orientation. 
     """
-    def __init__(self):
+    def __init__(self, trunk_geometry_frame_id):
         LeafSystem.__init__(self)
+
+        self.geom_frame_id = trunk_geometry_frame_id
 
         # We'll use an abstract output port so we can send all the
         # data we'd like to include in a dictionary format
         self.DeclareAbstractOutputPort(
                 "trunk_trajectory",
                 lambda: AbstractValue.Make({}),
-                self.DoSetTrunkOutputs)
+                self.SetTrunkOutputs)
 
-    def SimpleStanding(self, output_dict):
+        # Another output port is used to send geometry data regarding the
+        # trunk model to the scene graph for visualization
+        fpv = FramePoseVector()
+        fpv.set_value(self.geom_frame_id, RigidTransform())
+        self.DeclareAbstractOutputPort(
+                "trunk_geometry",
+                lambda: AbstractValue.Make(fpv),
+                self.SetGeometryOutputs)
+
+        # The output data is a class-level object so we can be sure we're sending
+        # the same info to the controller as to the scene graph
+        self.output_dict = {}
+        self.SimpleStanding()  # set initial values to self.output_dict
+
+    def SimpleStanding(self):
         """
         Set output values corresponing to simply
         standing on all four feet.
         """
         # Foot positions
-        output_dict["p_lf"] = np.array([ 0.175, 0.11, 0.0])
-        output_dict["p_rf"] = np.array([ 0.175,-0.11, 0.0])
-        output_dict["p_lh"] = np.array([-0.2,   0.11, 0.0])
-        output_dict["p_rh"] = np.array([-0.2,  -0.11, 0.0])
+        self.output_dict["p_lf"] = np.array([ 0.175, 0.11, 0.0])
+        self.output_dict["p_rf"] = np.array([ 0.175,-0.11, 0.0])
+        self.output_dict["p_lh"] = np.array([-0.2,   0.11, 0.0])
+        self.output_dict["p_rh"] = np.array([-0.2,  -0.11, 0.0])
 
         # Foot velocities
-        output_dict["pd_lf"] = np.zeros(3)
-        output_dict["pd_rf"] = np.zeros(3)
-        output_dict["pd_lh"] = np.zeros(3)
-        output_dict["pd_rh"] = np.zeros(3)
+        self.output_dict["pd_lf"] = np.zeros(3)
+        self.output_dict["pd_rf"] = np.zeros(3)
+        self.output_dict["pd_lh"] = np.zeros(3)
+        self.output_dict["pd_rh"] = np.zeros(3)
         
         # Foot accelerations
-        output_dict["pdd_lf"] = np.zeros(3)
-        output_dict["pdd_rf"] = np.zeros(3)
-        output_dict["pdd_lh"] = np.zeros(3)
-        output_dict["pdd_rh"] = np.zeros(3)
+        self.output_dict["pdd_lf"] = np.zeros(3)
+        self.output_dict["pdd_rf"] = np.zeros(3)
+        self.output_dict["pdd_lh"] = np.zeros(3)
+        self.output_dict["pdd_rh"] = np.zeros(3)
 
         # Foot contact states: [lf,rf,lh,rh], True indicates being in contact.
-        output_dict["contact_states"] = [True,True,True,True]
+        self.output_dict["contact_states"] = [True,True,True,True]
 
         # Foot contact forces, where each row corresponds to a foot [lf,rf,lh,rh].
-        output_dict["f_cj"] = np.zeros((3,4))
+        self.output_dict["f_cj"] = np.zeros((3,4))
 
         # Body pose
-        output_dict["rpy_body"] = np.array([0.0, 0.0, 0.0])
-        output_dict["p_body"] = np.array([0.0, 0.0, 0.30])
+        self.output_dict["rpy_body"] = np.array([0.0, 0.0, 0.0])
+        self.output_dict["p_body"] = np.array([0.0, 0.0, 0.40])
 
         # Body velocities
-        output_dict["rpyd_body"] = np.zeros(3)
-        output_dict["pd_body"] = np.zeros(3)
+        self.output_dict["rpyd_body"] = np.zeros(3)
+        self.output_dict["pd_body"] = np.zeros(3)
 
         # Body accelerations
-        output_dict["rpydd_body"] = np.zeros(3)
-        output_dict["pdd_body"] = np.zeros(3)
+        self.output_dict["rpydd_body"] = np.zeros(3)
+        self.output_dict["pdd_body"] = np.zeros(3)
 
-    def OrientationTest(self, output_dict, t):
+    def OrientationTest(self, t):
         """
         Given the current time t, generate output values for
         for a simple orientation test.
         """
-        self.SimpleStanding(output_dict)
-        output_dict["rpy_body"] = np.array([0.0, 0.4*np.sin(t), 0.4*np.cos(t)])
+        self.SimpleStanding()
+        self.output_dict["rpy_body"] = np.array([0.0, 0.4*np.sin(t), 0.4*np.cos(t)])
 
-    def RaiseFoot(self, output_dict):
+    def RaiseFoot(self):
         """
         Modify the simple standing output values to lift one foot
         off the ground.
         """
-        self.SimpleStanding(output_dict)
-        output_dict["contact_states"] = [True,False,True,True]
-        output_dict["p_rf"] = np.array([ 0.175,-0.11, 0.1])
+        self.SimpleStanding()
+        self.output_dict["contact_states"] = [True,False,True,True]
+        self.output_dict["p_rf"] = np.array([ 0.175,-0.11, 0.1])
 
-    def DoSetTrunkOutputs(self, context, output):
-        output_dict = output.get_mutable_value()
+    def SetTrunkOutputs(self, context, output):
+        self.output_dict = output.get_mutable_value()
 
         if context.get_time() < 5:
-            self.OrientationTest(output_dict, context.get_time())
+            self.OrientationTest(context.get_time())
         else:
-            self.RaiseFoot(output_dict)
+            self.RaiseFoot()
 
+    def SetGeometryOutputs(self, context, output):
+        fpv = output.get_mutable_value()
+        fpv.clear()
+       
+        X = RigidTransform()
+        X.set_rotation(RollPitchYaw(self.output_dict["rpy_body"]))
+        X.set_translation(self.output_dict["p_body"])
+        
+        fpv.set_value(self.geom_frame_id, X)

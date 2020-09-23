@@ -5,6 +5,8 @@ from controllers import QPController
 from planners import BasicTrunkPlanner, TowrTrunkPlanner
 import os
 
+show_trunk_model = True
+
 # Drake only loads things relative to the drake path, so we have to do some hacking
 # to load an arbitrary file
 robot_description_path = "./models/anymal_b_simple_description/urdf/anymal_drake.urdf" # relative to this file
@@ -46,28 +48,24 @@ plant.RegisterVisualGeometry(
 plant.Finalize()
 assert plant.geometry_source_is_registered()
 
-# DEBUG
-#inspector = scene_graph.model_inspector()
-#geometry_ids = inspector.GetAllGeometryIds()
-#il_prop = inspector.GetIllustrationProperties(geometry_ids[1])
-#print(il_prop)
-#print(il_prop.GetProperty("phong","diffuse"))
-#il_prop.UpdateProperty("phong","diffuse",Rgba(r=1.0,g=0.0,b=0.0,a=1.0))
-#print(il_prop.GetProperty("phong","diffuse"))
-
 # Add custom visualizations for the trunk model
 trunk_source = scene_graph.RegisterSource("trunk")
 trunk_frame = GeometryFrame("trunk")
 scene_graph.RegisterFrame(trunk_source, trunk_frame)
-trunk_shape = Box(0.5,0.5,0.5)
-trunk_color = np.array([0.5,0.5,0.5,0.5])
-trunk_geometry = GeometryInstance(RigidTransform(),trunk_shape,"trunk")
+trunk_shape = Box(0.6,0.3,0.3)
+if show_trunk_model:
+    trunk_color = np.array([0.1,0.1,0.1,0.4])
+else:
+    trunk_color = np.array([0.0,0.0,0.0,0.0])
+X_trunk = RigidTransform()
+X_trunk.set_translation(np.array([0.0,0.0,0.08]))
+trunk_geometry = GeometryInstance(X_trunk,trunk_shape,"trunk")
 trunk_geometry.set_illustration_properties(MakePhongIllustrationProperties(trunk_color))
 scene_graph.RegisterGeometry(trunk_source, trunk_frame.id(), trunk_geometry)
 
 # Create high-level trunk-model planner and low-level whole-body controller
-#planner = builder.AddSystem(TowrTrunkPlanner())
-planner = builder.AddSystem(BasicTrunkPlanner(trunk_frame.id()))
+#planner = builder.AddSystem(BasicTrunkPlanner(trunk_frame.id()))
+planner = builder.AddSystem(TowrTrunkPlanner(trunk_frame.id()))
 controller = builder.AddSystem(QPController(plant,dt))
 
 # Set up the Scene Graph
@@ -124,15 +122,5 @@ q0 = np.asarray([ 1.0, 0.0, 0.0, 0.0,     # base orientation
 qd0 = np.zeros(plant.num_velocities())
 plant.SetPositions(plant_context,q0)
 plant.SetVelocities(plant_context,qd0)
-
-# Add some transparency to the robot
-query_object = plant.get_geometry_query_input_port().Eval(plant_context)
-inspector = query_object.inspector()
-geometry_ids = inspector.GetAllGeometryIds()
-il_prop = inspector.GetIllustrationProperties(geometry_ids[0])
-print(il_prop)
-print(il_prop.GetProperty("phong","diffuse"))
-il_prop.UpdateProperty("phong","diffuse",Rgba(r=1.0,g=0.0,b=0.0,a=1.0))
-print(il_prop.GetProperty("phong","diffuse"))
 
 simulator.AdvanceTo(2.0)

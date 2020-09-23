@@ -11,8 +11,8 @@ class TowrTrunkPlanner(BasicTrunkPlanner):
     Trunk planner which uses TOWR (https://github.com/ethz-adrl/towr/) to generate
     target motions of the base and feet. 
     """
-    def __init__(self):
-        BasicTrunkPlanner.__init__(self)
+    def __init__(self, trunk_geometry_frame_id):
+        BasicTrunkPlanner.__init__(self, trunk_geometry_frame_id)
 
         # Set up LCM subscriber to read optimal trajectory from TOWR
         self.lc = lcm.LCM()
@@ -60,7 +60,7 @@ class TowrTrunkPlanner(BasicTrunkPlanner):
             self.lc.handle() 
 
     def SetTrunkOutputs(self, context, output):
-        output_dict = output.get_mutable_value()
+        self.output_dict = output.get_mutable_value()
         t = context.get_time()
 
         # Find the timestamp in the (stored) TOWR trajectory that is closest 
@@ -73,37 +73,37 @@ class TowrTrunkPlanner(BasicTrunkPlanner):
         # we'll pass to the controller
 
         # Foot positions
-        output_dict["p_lf"] = np.array(data.lf_p)
-        output_dict["p_rf"] = np.array(data.rf_p)
-        output_dict["p_lh"] = np.array(data.lh_p)
-        output_dict["p_rh"] = np.array(data.rh_p)
+        self.output_dict["p_lf"] = np.array(data.lf_p)
+        self.output_dict["p_rf"] = np.array(data.rf_p)
+        self.output_dict["p_lh"] = np.array(data.lh_p)
+        self.output_dict["p_rh"] = np.array(data.rh_p)
 
         # Foot velocities
-        output_dict["pd_lf"] = np.array(data.lf_pd)
-        output_dict["pd_rf"] = np.array(data.rf_pd)
-        output_dict["pd_lh"] = np.array(data.lh_pd)
-        output_dict["pd_rh"] = np.array(data.rh_pd)
+        self.output_dict["pd_lf"] = np.array(data.lf_pd)
+        self.output_dict["pd_rf"] = np.array(data.rf_pd)
+        self.output_dict["pd_lh"] = np.array(data.lh_pd)
+        self.output_dict["pd_rh"] = np.array(data.rh_pd)
         
         # Foot accelerations
-        output_dict["pdd_lf"] = np.array(data.lf_pdd)
-        output_dict["pdd_rf"] = np.array(data.rf_pdd)
-        output_dict["pdd_lh"] = np.array(data.lh_pdd)
-        output_dict["pdd_rh"] = np.array(data.rh_pdd)
+        self.output_dict["pdd_lf"] = np.array(data.lf_pdd)
+        self.output_dict["pdd_rf"] = np.array(data.rf_pdd)
+        self.output_dict["pdd_lh"] = np.array(data.lh_pdd)
+        self.output_dict["pdd_rh"] = np.array(data.rh_pdd)
 
         # Foot contact states: [lf,rf,lh,rh], True indicates being in contact.
-        output_dict["contact_states"] = [data.lf_contact, data.rf_contact, data.lh_contact, data.rh_contact]
+        self.output_dict["contact_states"] = [data.lf_contact, data.rf_contact, data.lh_contact, data.rh_contact]
 
         # Foot contact forces, where each row corresponds to a foot [lf,rf,lh,rh].
-        output_dict["f_cj"] = np.vstack([np.array(data.lf_f), np.array(data.rf_f), np.array(data.lh_f), np.array(data.rh_f)]).T
+        self.output_dict["f_cj"] = np.vstack([np.array(data.lf_f), np.array(data.rf_f), np.array(data.lh_f), np.array(data.rh_f)]).T
 
         # Body pose
-        output_dict["rpy_body"] = np.array(data.base_rpy)
-        output_dict["p_body"] = np.array(data.base_p)
+        self.output_dict["rpy_body"] = np.array(data.base_rpy)
+        self.output_dict["p_body"] = np.array(data.base_p)
 
         # Body velocities
-        output_dict["rpyd_body"] = np.array(data.base_rpyd)
-        output_dict["pd_body"] = np.array(data.base_pd)
+        self.output_dict["rpyd_body"] = np.array(data.base_rpyd)
+        self.output_dict["pd_body"] = np.array(data.base_pd)
 
         # Body accelerations
-        output_dict["rpydd_body"] = np.array(data.base_rpydd)
-        output_dict["pdd_body"] = np.array(data.base_pdd)
+        self.output_dict["rpydd_body"] = np.array(data.base_rpydd)
+        self.output_dict["pdd_body"] = np.array(data.base_pdd)

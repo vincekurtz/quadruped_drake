@@ -112,11 +112,11 @@ class QPController(BasicController):
         Kp_body_rpy = Kp_body_p
         Kd_body_rpy = Kd_body_p
 
-        Kp_foot = 50.0
-        Kd_foot = 10.0
+        Kp_foot = 100.0
+        Kd_foot = 20.0
 
-        w_body = 1.0
-        w_foot = 1.0
+        w_body = 100.0
+        w_foot = 10.0
 
         #####################################
 

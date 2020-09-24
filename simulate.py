@@ -120,7 +120,7 @@ diagram_context = diagram.CreateDefaultContext()
 
 # Simulator setup
 simulator = Simulator(diagram, diagram_context)
-simulator.set_target_realtime_rate(0.20)
+simulator.set_target_realtime_rate(1.0)
 simulator.set_publish_every_time_step(False)
 
 # Set initial states
@@ -139,4 +139,4 @@ qd0 = np.zeros(plant.num_velocities())
 plant.SetPositions(plant_context,q0)
 plant.SetVelocities(plant_context,qd0)
 
-simulator.AdvanceTo(2.5)
+simulator.AdvanceTo(6.0)

@@ -107,7 +107,7 @@ class QPController(BasicController):
         ######### Tuning Parameters #########
 
         Kp_body_p = 100.0
-        Kd_body_p = 5.0
+        Kd_body_p = 20.0
 
         Kp_body_rpy = Kp_body_p
         Kd_body_rpy = Kd_body_p

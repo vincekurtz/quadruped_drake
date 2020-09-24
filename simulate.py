@@ -27,8 +27,8 @@ quad = Parser(plant=plant).AddModelFromFile(robot_urdf,"quad")
 # Add a flat ground with friction
 X_BG = RigidTransform()
 surface_friction = CoulombFriction(
-        static_friction = 1.0,
-        dynamic_friction = 1.0)
+        static_friction = 1.1,
+        dynamic_friction = 1.1)
 plant.RegisterCollisionGeometry(
         plant.world_body(),      # the body for which this object is registered
         X_BG,                    # The fixed pose of the geometry frame G in the body frame B
@@ -120,7 +120,7 @@ diagram_context = diagram.CreateDefaultContext()
 
 # Simulator setup
 simulator = Simulator(diagram, diagram_context)
-simulator.set_target_realtime_rate(1.2)
+simulator.set_target_realtime_rate(0.2)
 simulator.set_publish_every_time_step(False)
 
 # Set initial states

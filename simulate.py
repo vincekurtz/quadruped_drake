@@ -80,8 +80,8 @@ for foot in ["lf","rf","lh","rh"]:
     trunk_frame_ids[foot] = foot_frame.id()
 
 # Create high-level trunk-model planner and low-level whole-body controller
-planner = builder.AddSystem(BasicTrunkPlanner(trunk_frame_ids))
-#planner = builder.AddSystem(TowrTrunkPlanner(trunk_frame_ids))
+#planner = builder.AddSystem(BasicTrunkPlanner(trunk_frame_ids))
+planner = builder.AddSystem(TowrTrunkPlanner(trunk_frame_ids))
 controller = builder.AddSystem(PassivityController(plant,dt))
 #controller = builder.AddSystem(QPController(plant,dt))
 
@@ -121,7 +121,7 @@ diagram_context = diagram.CreateDefaultContext()
 
 # Simulator setup
 simulator = Simulator(diagram, diagram_context)
-simulator.set_target_realtime_rate(1.0)
+simulator.set_target_realtime_rate(0.2)
 simulator.set_publish_every_time_step(False)
 
 # Set initial states

@@ -49,8 +49,12 @@ class PassivityController(BasicController):
         to the whole-body QP.
         """
         # Stack J_c, f_c 
-        f = np.vstack(f_c)
-        J = np.vstack(J_c)
+        if len(f_c) > 0:
+            f = np.vstack(f_c)
+            J = np.vstack(J_c)
+        else:
+            f = np.zeros((0,1))
+            J = np.zeros((0,self.plant.num_velocities()))
 
         # Put in the form 1/2*x'*Q*x + c'*x for fast formulation
         x = np.vstack([tau,f])
@@ -255,14 +259,14 @@ class PassivityController(BasicController):
         qdd_des = Jbar_dot@pd_des + Jbar@pdd_des
 
         # Compute tau_nom
-        Kp = 700
+        Kp = 500
         Kd = 100
         tau_nom = M@qdd_des + C@qd_des + tau_g - J.T@(Kp*p_tilde + Kd*v_tilde)
 
         # Set up the QP
         #   minimize:
-        #       || tau_nom - S'*tau + sum(J'*f) ||^2 +
-        #     w*|| tau ||^2
+        #     w1*|| tau_nom - S'*tau + sum(J'*f) ||^2 +
+        #     w2*|| tau ||^2
         #   subject to:
         #        M*vd + Cv + tau_g = S'*tau + sum(J'*f)
         #        f \in friction cones
@@ -278,17 +282,9 @@ class PassivityController(BasicController):
         self.AddGeneralizedForceCost(tau_nom, S, tau, J_c, f_c, weight=1)
 
         # min w*|| tau ||^2
-        self.mp.AddQuadraticErrorCost(Q=1.0*np.eye(self.plant.num_actuators()),
-                                      x_desired = np.zeros(self.plant.num_actuators()),
-                                      vars=tau)
-
-        # min || J_body*vd + Jd_body*v - pdd_body_des \|^2
-        #vd_body_des = np.hstack([wd_body_des,pdd_body_des])   # desired spatial acceleration of the body
-        #self.AddJacobianTypeCost(J_body, vd, Jdv_body, vd_body_des, weight=w_body)
-
-        # min || J_s*vd+ Jd_s*v - pdd_s_des ||^2
-        #for i in range(num_swing):
-        #    self.AddJacobianTypeCost(J_s[i], vd, Jdv_s[i], pdd_s_des[i], weight=w_foot)
+        #self.mp.AddQuadraticErrorCost(Q=0.1*np.eye(self.plant.num_actuators()),
+        #                              x_desired = np.zeros(self.plant.num_actuators()),
+        #                              vars=tau)
 
         # s.t.  M*vd + Cv + tau_g = S'*tau + sum(J_c[j]'*f_c[j])
         self.AddDynamicsConstraint(M, vd, Cv, tau_g, S, tau, J_c, f_c)

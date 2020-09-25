@@ -89,7 +89,7 @@ int main() {
     formulation.initial_base_.lin.at(kPos).z() = - nominal_stance_B.front().z() + z_ground;
 
     // desired goal state
-    formulation.final_base_.lin.at(towr::kPos) << 2.0, 0.0, 0.5;
+    formulation.final_base_.lin.at(towr::kPos) << 1.5, 0.0, 0.5;
 
     // Total duration of the movement
     double total_duration = 5.0;
@@ -97,7 +97,7 @@ int main() {
     // Parameters defining contact sequence and default durations. We use
     // a GaitGenerator with some predifined gaits
     auto gait_gen_ = GaitGenerator::MakeGaitGenerator(4);
-    auto id_gait   = static_cast<GaitGenerator::Combos>(0); // 0=walk, 1=flying trot, 2=pace, 3=bound, 4=gallop
+    auto id_gait   = static_cast<GaitGenerator::Combos>(4); // 0=walk, 1=flying trot, 2=pace, 3=bound, 4=gallop
     gait_gen_->SetCombo(id_gait);
     for (int ee=0; ee<4; ++ee) {
         formulation.params_.ee_phase_durations_.push_back(gait_gen_->GetPhaseDurations(total_duration, ee));
@@ -105,7 +105,7 @@ int main() {
     }
 
     // Indicate whether to optimize over gaits as well
-    formulation.params_.OptimizePhaseDurations();
+    //formulation.params_.OptimizePhaseDurations();
 
     // Initialize the nonlinear-programming problem with the variables,
     // constraints and costs.

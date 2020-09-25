@@ -130,6 +130,38 @@ class PassivityController(BasicController):
 
             constraint = self.AddJacobianTypeConstraint(J_c[j], vd, Jdv_c[j], pdd_des)
 
+    def AddVdotConstraint(self, tau, f_c, qd_tilde, S, J_c, M, Cv, tau_g, qdd_des, p_tilde, v_tilde, Kp, C, delta=0):
+        """
+        Add a constraint
+
+            Vdot <= delta
+        
+        which ensures that the simulation fuction
+
+            V = 1/2qd_tilde'*M*qd_tilde + p_tilde'*Kp*p_tilde
+
+        is decreasing. 
+        """
+        # Stack J_c, f_c 
+        if len(f_c) > 0:
+            f = np.vstack(f_c)
+            J = np.vstack(J_c)
+        else:
+            f = np.zeros((0,1))
+            J = np.zeros((0,self.plant.num_velocities()))
+
+        # We'll formulate as lb <= Ax <= ub, where x=[tau, f_c]'
+        x = np.vstack([tau,f])
+        A = (qd_tilde.T @ np.hstack([S.T, J.T]))[np.newaxis]
+        
+        ub = qd_tilde.T @ (M@qdd_des + Cv + tau_g) - Kp*p_tilde.T@v_tilde \
+                - qd_tilde.T@C@qd_tilde + delta
+        ub *= np.ones(1)
+        
+        lb = -np.inf*np.ones(1)
+
+        return self.mp.AddLinearConstraint(A=A,lb=lb,ub=ub,vars=x)
+
     def DoSetControlTorques(self, context, output):
         self.UpdateStoredContext(context)
         q = self.plant.GetPositions(self.context)
@@ -258,6 +290,9 @@ class PassivityController(BasicController):
         qd_des = Jbar@pd_des
         qdd_des = Jbar_dot@pd_des + Jbar@pdd_des
 
+        # Compute joint velocity error
+        qd_tilde = v - qd_des
+
         # Compute tau_nom
         Kp = 500
         Kd = 100
@@ -282,9 +317,14 @@ class PassivityController(BasicController):
         self.AddGeneralizedForceCost(tau_nom, S, tau, J_c, f_c, weight=1)
 
         # min w*|| tau ||^2
-        #self.mp.AddQuadraticErrorCost(Q=0.1*np.eye(self.plant.num_actuators()),
+        #self.mp.AddQuadraticErrorCost(Q=0.001*np.eye(self.plant.num_actuators()),
         #                              x_desired = np.zeros(self.plant.num_actuators()),
         #                              vars=tau)
+
+        # s.t. Vdot <= delta
+        delta = 0
+        self.AddVdotConstraint(tau, f_c, qd_tilde, S, J_c, M, Cv, tau_g, 
+                                qdd_des, p_tilde, v_tilde, Kp, C, delta=delta)
 
         # s.t.  M*vd + Cv + tau_g = S'*tau + sum(J_c[j]'*f_c[j])
         self.AddDynamicsConstraint(M, vd, Cv, tau_g, S, tau, J_c, f_c)

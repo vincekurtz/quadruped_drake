@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from pydrake.all import *
-from controllers import QPController
+from controllers import PassivityController, QPController
 from planners import BasicTrunkPlanner, TowrTrunkPlanner
 import os
 
@@ -80,9 +80,10 @@ for foot in ["lf","rf","lh","rh"]:
     trunk_frame_ids[foot] = foot_frame.id()
 
 # Create high-level trunk-model planner and low-level whole-body controller
-#planner = builder.AddSystem(BasicTrunkPlanner(trunk_frame_ids))
-planner = builder.AddSystem(TowrTrunkPlanner(trunk_frame_ids))
-controller = builder.AddSystem(QPController(plant,dt))
+planner = builder.AddSystem(BasicTrunkPlanner(trunk_frame_ids))
+#planner = builder.AddSystem(TowrTrunkPlanner(trunk_frame_ids))
+controller = builder.AddSystem(PassivityController(plant,dt))
+#controller = builder.AddSystem(QPController(plant,dt))
 
 # Set up the Scene Graph
 builder.Connect(

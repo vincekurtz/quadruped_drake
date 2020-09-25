@@ -1,2 +1,3 @@
 from controllers.basic_controller import BasicController
 from controllers.qp_controller import QPController
+from controllers.passivity_controller import PassivityController

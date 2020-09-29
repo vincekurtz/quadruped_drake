@@ -19,7 +19,7 @@ class QPController(BasicController):
         self.mu = 0.7
 
         # Choose a solver
-        self.solver = OsqpSolver()
+        self.solver = GurobiSolver()
 
     def AddJacobianTypeCost(self, J, qdd, Jd_qd, xdd_des, weight=1.0):
         """

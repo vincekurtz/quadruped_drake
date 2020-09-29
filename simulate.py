@@ -19,7 +19,7 @@ robot_description_file = "drake/" + os.path.relpath(robot_description_path, star
 robot_urdf  = FindResourceOrThrow(robot_description_file)
 builder = DiagramBuilder()
 scene_graph = builder.AddSystem(SceneGraph())
-dt = 2e-3
+dt = 5e-3
 plant = builder.AddSystem(MultibodyPlant(time_step=dt))
 plant.RegisterAsSourceForSceneGraph(scene_graph) 
 quad = Parser(plant=plant).AddModelFromFile(robot_urdf,"quad")
@@ -100,10 +100,13 @@ builder.Connect(
 builder.Connect(planner.GetOutputPort("trunk_trajectory"), controller.get_input_port(1))
 
 # Connect the controller to the simulated plant
-builder.Connect(controller.get_output_port(),
+builder.Connect(controller.GetOutputPort("quad_torques"),
                 plant.get_actuation_input_port(quad))
 builder.Connect(plant.get_state_output_port(),
-                controller.get_input_port(0))
+                controller.GetInputPort("quad_state"))
+
+# Add loggers
+logger = LogOutput(controller.GetOutputPort("output_metrics"),builder)
 
 # Set up the Visualizer
 ConnectDrakeVisualizer(builder=builder, scene_graph=scene_graph)
@@ -121,7 +124,7 @@ diagram_context = diagram.CreateDefaultContext()
 
 # Simulator setup
 simulator = Simulator(diagram, diagram_context)
-simulator.set_target_realtime_rate(0.2)
+simulator.set_target_realtime_rate(1.0)
 simulator.set_publish_every_time_step(False)
 
 # Set initial states
@@ -140,4 +143,17 @@ qd0 = np.zeros(plant.num_velocities())
 plant.SetPositions(plant_context,q0)
 plant.SetVelocities(plant_context,qd0)
 
-simulator.AdvanceTo(6.0)
+simulator.AdvanceTo(3.0)
+
+# Plot stuff
+t = logger.sample_times()
+V = logger.data()[0,:]
+err = logger.data()[1,:]
+
+plt.figure()
+plt.plot(t, V, linewidth='2', label='Simulation Function')
+plt.plot(t, err, linewidth='2', label='Output Error')
+plt.legend()
+plt.xlabel("time (s)")
+
+plt.show()

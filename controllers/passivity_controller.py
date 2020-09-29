@@ -15,11 +15,19 @@ class PassivityController(BasicController):
                 "trunk_input",
                 AbstractValue.Make({}))  
 
+        # Declare output ports for logging
+        self.V = 0
+        self.err = 0
+        self.DeclareVectorOutputPort(
+                "output_metrics",
+                BasicVector(2),
+                self.SetLoggingOutputs)
+
         # Set the friction coefficient
         self.mu = 0.7
 
         # Choose a solver
-        self.solver = OsqpSolver()
+        self.solver = GurobiSolver()
 
         # Storage function for numerically computing Jbar
         self.last_Jbar = None
@@ -130,7 +138,7 @@ class PassivityController(BasicController):
 
             constraint = self.AddJacobianTypeConstraint(J_c[j], vd, Jdv_c[j], pdd_des)
 
-    def AddVdotConstraint(self, tau, f_c, qd_tilde, S, J_c, M, Cv, tau_g, qdd_des, p_tilde, v_tilde, Kp, C, delta=0):
+    def AddVdotConstraint(self, tau, f_c, delta, qd_tilde, S, J_c, M, Cv, tau_g, qdd_des, p_tilde, v_tilde, Kp, C):
         """
         Add a constraint
 
@@ -150,38 +158,37 @@ class PassivityController(BasicController):
             f = np.zeros((0,1))
             J = np.zeros((0,self.plant.num_velocities()))
 
-        # We'll formulate as lb <= Ax <= ub, where x=[tau, f_c]'
-        x = np.vstack([tau,f])
+        # We'll formulate as lb <= Ax <= ub, where x=[tau, f_c, delta]'
+        x = np.vstack([tau,f,delta])
         A = (qd_tilde.T @ np.hstack([S.T, J.T]))[np.newaxis]
+        A = np.hstack([A, -np.eye(1)])
         
         ub = qd_tilde.T @ (M@qdd_des + Cv + tau_g) - Kp*p_tilde.T@v_tilde \
-                - qd_tilde.T@C@qd_tilde + delta
+                - qd_tilde.T@C@qd_tilde
         ub *= np.ones(1)
         
         lb = -np.inf*np.ones(1)
 
         return self.mp.AddLinearConstraint(A=A,lb=lb,ub=ub,vars=x)
 
+    def SetLoggingOutputs(self, context, output):
+        """
+        Set outputs for logging, namely a vector consisting of
+        the current simulation function
+
+            V = 1/2 qd_tilde'*M*qd_tilde + pd_tilde'*Kp*pd_tilde
+
+        and the current output error
+
+            pd_tilde'*pd_tilde.
+
+        """
+        output.SetFromVector(np.asarray([self.V,self.err]))
+
     def DoSetControlTorques(self, context, output):
         self.UpdateStoredContext(context)
         q = self.plant.GetPositions(self.context)
         v = self.plant.GetVelocities(self.context)
-
-        ######### Tuning Parameters #########
-
-        Kp_body_p = 100.0
-        Kd_body_p = 20.0
-
-        Kp_body_rpy = Kp_body_p
-        Kd_body_rpy = Kd_body_p
-
-        Kp_foot = 100.0
-        Kd_foot = 20.0
-
-        w_body = 100.0
-        w_foot = 10.0
-
-        #####################################
         
         # Compute Dynamics Quantities
         M, Cv, tau_g, S = self.CalcDynamics()
@@ -294,8 +301,8 @@ class PassivityController(BasicController):
         qd_tilde = v - qd_des
 
         # Compute tau_nom
-        Kp = 500
-        Kd = 100
+        Kp = 500.0
+        Kd = 30.0
         tau_nom = M@qdd_des + C@qd_des + tau_g - J.T@(Kp*p_tilde + Kd*v_tilde)
 
         # Set up the QP
@@ -312,19 +319,32 @@ class PassivityController(BasicController):
         vd = self.mp.NewContinuousVariables(self.plant.num_velocities(), 1, 'vd')
         tau = self.mp.NewContinuousVariables(self.plant.num_actuators(), 1, 'tau')
         f_c = [self.mp.NewContinuousVariables(3,1,'f_%s'%j) for j in range(num_contact)]
+        delta = self.mp.NewContinuousVariables(1,1,'delta')
 
         # min || tau_nom - S'*tau + sum(J'*f) ||^2
-        self.AddGeneralizedForceCost(tau_nom, S, tau, J_c, f_c, weight=1)
+        self.AddGeneralizedForceCost(tau_nom, S, tau, J_c, f_c, weight=1.0)
 
         # min w*|| tau ||^2
-        #self.mp.AddQuadraticErrorCost(Q=0.001*np.eye(self.plant.num_actuators()),
+        #self.mp.AddQuadraticErrorCost(Q=0.1*np.eye(self.plant.num_actuators()),
         #                              x_desired = np.zeros(self.plant.num_actuators()),
         #                              vars=tau)
 
+        # min delta
+        #self.mp.AddCost(0.5*delta[0,0])
+
         # s.t. Vdot <= delta
-        delta = 0
-        self.AddVdotConstraint(tau, f_c, qd_tilde, S, J_c, M, Cv, tau_g, 
-                                qdd_des, p_tilde, v_tilde, Kp, C, delta=delta)
+        self.AddVdotConstraint(tau, f_c, delta, qd_tilde, S, J_c, M, Cv, tau_g, 
+                                qdd_des, p_tilde, v_tilde, Kp, C)
+
+        # s.t. vdot_min <= delta <= vdot_max
+        vdot_max = 0.0
+        vdot_min = -np.inf
+        self.mp.AddLinearConstraint(A=np.eye(1),lb=vdot_min*np.eye(1),ub=vdot_max*np.eye(1),vars=delta)
+
+        # s.t. tau_min <= tau <= tau_max
+        #tau_min = -100*np.ones((self.plant.num_actuators(),1))
+        #tau_max = 100*np.ones((self.plant.num_actuators(),1))
+        #self.mp.AddLinearConstraint(A=np.eye(self.plant.num_actuators()),lb=tau_min,ub=tau_max,vars=tau)
 
         # s.t.  M*vd + Cv + tau_g = S'*tau + sum(J_c[j]'*f_c[j])
         self.AddDynamicsConstraint(M, vd, Cv, tau_g, S, tau, J_c, f_c)
@@ -341,3 +361,8 @@ class PassivityController(BasicController):
         tau = result.GetSolution(tau)
 
         output.SetFromVector(tau)
+
+        # Set quantities for logging
+        self.V = 0.5*qd_tilde.T@M@qd_tilde + Kp*p_tilde.T@p_tilde 
+        self.V *= 1/Kp      # scale by minimum eigenvalue of Kp
+        self.err = p_tilde.T@p_tilde

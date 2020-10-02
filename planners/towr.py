@@ -27,6 +27,9 @@ class TowrTrunkPlanner(BasicTrunkPlanner):
         # Call TOWR to generate a nominal trunk trajectory
         self.GenerateTrunkTrajectory()
 
+        # Time to wait in a standing position before starting the motion
+        self.wait_time = 1.5
+
     def lcm_handler(self, channel, data):
         """
         Handle an incoming LCM message. Essentially, we save the data
@@ -63,47 +66,53 @@ class TowrTrunkPlanner(BasicTrunkPlanner):
         self.output_dict = output.get_mutable_value()
         t = context.get_time()
 
-        # Find the timestamp in the (stored) TOWR trajectory that is closest 
-        # to the curren time
-        closest_index = np.abs(np.array(self.towr_timestamps)-t).argmin()
-        closest_towr_t = self.towr_timestamps[closest_index]
-        data = self.towr_data[closest_index]
+        if t < self.wait_time:
+            # Just stand for a bit
+            self.SimpleStanding()
 
-        # Unpack the TOWR-generated trajectory into the dictionary format that
-        # we'll pass to the controller
+        else:
+            # Find the timestamp in the (stored) TOWR trajectory that is closest 
+            # to the curren time
+            t -= self.wait_time
+            closest_index = np.abs(np.array(self.towr_timestamps)-t).argmin()
+            closest_towr_t = self.towr_timestamps[closest_index]
+            data = self.towr_data[closest_index]
 
-        # Foot positions
-        self.output_dict["p_lf"] = np.array(data.lf_p)
-        self.output_dict["p_rf"] = np.array(data.rf_p)
-        self.output_dict["p_lh"] = np.array(data.lh_p)
-        self.output_dict["p_rh"] = np.array(data.rh_p)
+            # Unpack the TOWR-generated trajectory into the dictionary format that
+            # we'll pass to the controller
 
-        # Foot velocities
-        self.output_dict["pd_lf"] = np.array(data.lf_pd)
-        self.output_dict["pd_rf"] = np.array(data.rf_pd)
-        self.output_dict["pd_lh"] = np.array(data.lh_pd)
-        self.output_dict["pd_rh"] = np.array(data.rh_pd)
-        
-        # Foot accelerations
-        self.output_dict["pdd_lf"] = np.array(data.lf_pdd)
-        self.output_dict["pdd_rf"] = np.array(data.rf_pdd)
-        self.output_dict["pdd_lh"] = np.array(data.lh_pdd)
-        self.output_dict["pdd_rh"] = np.array(data.rh_pdd)
+            # Foot positions
+            self.output_dict["p_lf"] = np.array(data.lf_p)
+            self.output_dict["p_rf"] = np.array(data.rf_p)
+            self.output_dict["p_lh"] = np.array(data.lh_p)
+            self.output_dict["p_rh"] = np.array(data.rh_p)
 
-        # Foot contact states: [lf,rf,lh,rh], True indicates being in contact.
-        self.output_dict["contact_states"] = [data.lf_contact, data.rf_contact, data.lh_contact, data.rh_contact]
+            # Foot velocities
+            self.output_dict["pd_lf"] = np.array(data.lf_pd)
+            self.output_dict["pd_rf"] = np.array(data.rf_pd)
+            self.output_dict["pd_lh"] = np.array(data.lh_pd)
+            self.output_dict["pd_rh"] = np.array(data.rh_pd)
+            
+            # Foot accelerations
+            self.output_dict["pdd_lf"] = np.array(data.lf_pdd)
+            self.output_dict["pdd_rf"] = np.array(data.rf_pdd)
+            self.output_dict["pdd_lh"] = np.array(data.lh_pdd)
+            self.output_dict["pdd_rh"] = np.array(data.rh_pdd)
 
-        # Foot contact forces, where each row corresponds to a foot [lf,rf,lh,rh].
-        self.output_dict["f_cj"] = np.vstack([np.array(data.lf_f), np.array(data.rf_f), np.array(data.lh_f), np.array(data.rh_f)]).T
+            # Foot contact states: [lf,rf,lh,rh], True indicates being in contact.
+            self.output_dict["contact_states"] = [data.lf_contact, data.rf_contact, data.lh_contact, data.rh_contact]
 
-        # Body pose
-        self.output_dict["rpy_body"] = np.array(data.base_rpy)
-        self.output_dict["p_body"] = np.array(data.base_p)
+            # Foot contact forces, where each row corresponds to a foot [lf,rf,lh,rh].
+            self.output_dict["f_cj"] = np.vstack([np.array(data.lf_f), np.array(data.rf_f), np.array(data.lh_f), np.array(data.rh_f)]).T
 
-        # Body velocities
-        self.output_dict["rpyd_body"] = np.array(data.base_rpyd)
-        self.output_dict["pd_body"] = np.array(data.base_pd)
+            # Body pose
+            self.output_dict["rpy_body"] = np.array(data.base_rpy)
+            self.output_dict["p_body"] = np.array(data.base_p)
 
-        # Body accelerations
-        self.output_dict["rpydd_body"] = np.array(data.base_rpydd)
-        self.output_dict["pdd_body"] = np.array(data.base_pdd)
+            # Body velocities
+            self.output_dict["rpyd_body"] = np.array(data.base_rpyd)
+            self.output_dict["pd_body"] = np.array(data.base_pd)
+
+            # Body accelerations
+            self.output_dict["rpydd_body"] = np.array(data.base_rpydd)
+            self.output_dict["pdd_body"] = np.array(data.base_pdd)

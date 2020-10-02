@@ -143,7 +143,7 @@ qd0 = np.zeros(plant.num_velocities())
 plant.SetPositions(plant_context,q0)
 plant.SetVelocities(plant_context,qd0)
 
-simulator.AdvanceTo(3.0)
+simulator.AdvanceTo(5.0)
 
 # Plot stuff
 t = logger.sample_times()
@@ -155,5 +155,6 @@ plt.plot(t, V, linewidth='2', label='Simulation Function')
 plt.plot(t, err, linewidth='2', label='Output Error')
 plt.legend()
 plt.xlabel("time (s)")
+plt.ylim((-0.001,0.015))
 
 plt.show()

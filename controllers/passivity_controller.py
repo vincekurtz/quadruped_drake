@@ -163,7 +163,7 @@ class PassivityController(BasicController):
         A = (qd_tilde.T @ np.hstack([S.T, J.T]))[np.newaxis]
         A = np.hstack([A, -np.eye(1)])
         
-        ub = qd_tilde.T @ (M@qdd_des + Cv + tau_g) - Kp*p_tilde.T@v_tilde \
+        ub = qd_tilde.T @ (M@qdd_des + Cv + tau_g) - p_tilde.T@Kp@v_tilde \
                 - qd_tilde.T@C@qd_tilde
         ub *= np.ones(1)
         
@@ -300,10 +300,21 @@ class PassivityController(BasicController):
         # Compute joint velocity error
         qd_tilde = v - qd_des
 
-        # Compute tau_nom
-        Kp = 500.0
-        Kd = 30.0
-        tau_nom = M@qdd_des + C@qd_des + tau_g - J.T@(Kp*p_tilde + Kd*v_tilde)
+        # Tuning parameters
+        Kp_body = 500
+        Kp_feet = 1000
+
+        Kd_body = 100
+        Kd_feet = 30
+        
+        nf = 3*sum(swing_feet)   # there are 3 foot-related variables (x,y,z positions) for each swing foot
+        Kp = np.block([[ Kp_body*np.eye(6),  np.zeros((6,nf))   ],
+                       [  np.zeros((nf,6)),  Kp_feet*np.eye(nf) ]])
+        Kd = np.block([[ Kd_body*np.eye(6),  np.zeros((6,nf))   ],
+                       [  np.zeros((nf,6)),  Kd_feet*np.eye(nf) ]])
+
+        # Compute tau_nom (interface)
+        tau_nom = M@qdd_des + C@qd_des + tau_g - J.T@(Kp@p_tilde + Kd@v_tilde)
 
         # Set up the QP
         #   minimize:
@@ -330,7 +341,7 @@ class PassivityController(BasicController):
         #                              vars=tau)
 
         # min delta
-        #self.mp.AddCost(0.5*delta[0,0])
+        self.mp.AddCost(0.5*delta[0,0])
 
         # s.t. Vdot <= delta
         self.AddVdotConstraint(tau, f_c, delta, qd_tilde, S, J_c, M, Cv, tau_g, 
@@ -363,6 +374,6 @@ class PassivityController(BasicController):
         output.SetFromVector(tau)
 
         # Set quantities for logging
-        self.V = 0.5*qd_tilde.T@M@qd_tilde + Kp*p_tilde.T@p_tilde 
-        self.V *= 1/Kp      # scale by minimum eigenvalue of Kp
+        self.V = 0.5*qd_tilde.T@M@qd_tilde + p_tilde.T@Kp@p_tilde 
+        self.V *= 1/np.min(np.linalg.eigvals(Kp))      # scale by minimum eigenvalue of Kp
         self.err = p_tilde.T@p_tilde

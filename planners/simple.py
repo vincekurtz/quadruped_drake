@@ -71,7 +71,7 @@ class BasicTrunkPlanner(LeafSystem):
 
         # Body pose
         self.output_dict["rpy_body"] = np.array([0.0, 0.0, 0.0])
-        self.output_dict["p_body"] = np.array([0.0, 0.0, 0.40])
+        self.output_dict["p_body"] = np.array([0.0, 0.0, 0.42])
 
         # Body velocities
         self.output_dict["rpyd_body"] = np.zeros(3)

@@ -6,8 +6,8 @@ add_subdirectory("towr")
 find_package(ifopt 2.0.1 REQUIRED)
 find_package(lcm REQUIRED)
 
-add_executable(solve_trunk_mpc solve_trunk_mpc.cpp)
-target_link_libraries(solve_trunk_mpc
+add_executable(trunk_mpc trunk_mpc.cpp)
+target_link_libraries(trunk_mpc
     PRIVATE 
     towr
     ifopt::ifopt_ipopt

@@ -52,7 +52,7 @@ class TowrTrunkPlanner(BasicTrunkPlanner):
         # gait, total trajectory time, etc
         
         # Run the trajectory optimization (TOWR)
-        sub.call(["build/solve_trunk_mpc"])  # supress otuput with stdout=sub.DEVNULL
+        sub.call(["build/trunk_mpc","walk","0"])  # syntax is trunk_mpc gait_type={walk,trot,pace,bound,gallop}  optimize_gait={0,1}
 
         # Read the result over LCM
         self.traj_finished = False  # clear out any stored data

@@ -69,8 +69,35 @@ void publish_trunk_state(SplineHolder solution, double t, bool finished=false) {
 
 // Generate a trunk-model trajectory for a quadruped using TOWR, and send the results
 // over LCM, where they can be read by Drake. 
-int main() {
+int main(int argc, char *argv[]) {
 
+    // Command line argument parsing
+    char usage_message[] = "Usage: trunk_mpc gait_type={walk,trot,pace,bound,gallop} optimize_gait={0,1}";
+    if (argc != 3) {
+        std::cout << usage_message << std::endl;
+        return 1;
+    }
+    
+    int gait_type; 
+    if (!strcmp(argv[1],"walk")) {
+        gait_type = 0;
+    } else if (!strcmp(argv[1],"trot")) {
+        gait_type = 1;
+    } else if (!strcmp(argv[1],"pace")) {
+        gait_type = 2;
+    } else if (!strcmp(argv[1],"bound")) {
+        gait_type = 3;
+    } else if (!strcmp(argv[1],"gallop")) {
+        gait_type = 4;
+    } else {
+        std::cout << "Invalid gait_type " << argv[1] << std::endl;
+        std::cout << usage_message << std::endl;
+        return 1;
+    }
+
+    bool optimize_gait = !strcmp(argv[2],"1");
+
+    // Set up the NLP
     NlpFormulation formulation;
 
     // terrain
@@ -89,7 +116,7 @@ int main() {
     formulation.initial_base_.lin.at(kPos).z() = - nominal_stance_B.front().z() + z_ground;
 
     // desired goal state
-    formulation.final_base_.lin.at(towr::kPos) << 2.0, 0.0, 0.5;
+    formulation.final_base_.lin.at(towr::kPos) << 1.0, 0.0, 0.5;
 
     // Total duration of the movement
     double total_duration = 5.0;
@@ -97,7 +124,7 @@ int main() {
     // Parameters defining contact sequence and default durations. We use
     // a GaitGenerator with some predifined gaits
     auto gait_gen_ = GaitGenerator::MakeGaitGenerator(4);
-    auto id_gait   = static_cast<GaitGenerator::Combos>(0); // 0=walk, 1=flying trot, 2=pace, 3=bound, 4=gallop
+    auto id_gait   = static_cast<GaitGenerator::Combos>(gait_type); // 0=walk, 1=flying trot, 2=pace, 3=bound, 4=gallop
     gait_gen_->SetCombo(id_gait);
     for (int ee=0; ee<4; ++ee) {
         formulation.params_.ee_phase_durations_.push_back(gait_gen_->GetPhaseDurations(total_duration, ee));
@@ -105,7 +132,9 @@ int main() {
     }
 
     // Indicate whether to optimize over gaits as well
-    //formulation.params_.OptimizePhaseDurations();
+    if (optimize_gait) {
+        formulation.params_.OptimizePhaseDurations();
+    }
 
     // Initialize the nonlinear-programming problem with the variables,
     // constraints and costs.

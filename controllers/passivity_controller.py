@@ -301,11 +301,11 @@ class PassivityController(BasicController):
         qd_tilde = v - qd_des
 
         # Tuning parameters
-        Kp_body = 500
-        Kp_feet = 1000
+        Kp_body = 100
+        Kp_feet = 100
 
-        Kd_body = 100
-        Kd_feet = 30
+        Kd_body = 50
+        Kd_feet = 10
         
         nf = 3*sum(swing_feet)   # there are 3 foot-related variables (x,y,z positions) for each swing foot
         Kp = np.block([[ Kp_body*np.eye(6),  np.zeros((6,nf))   ],
@@ -341,16 +341,16 @@ class PassivityController(BasicController):
         #                              vars=tau)
 
         # min delta
-        self.mp.AddCost(0.5*delta[0,0])
+        #self.mp.AddCost(0.5*delta[0,0])
 
         # s.t. Vdot <= delta
-        self.AddVdotConstraint(tau, f_c, delta, qd_tilde, S, J_c, M, Cv, tau_g, 
-                                qdd_des, p_tilde, v_tilde, Kp, C)
+        #self.AddVdotConstraint(tau, f_c, delta, qd_tilde, S, J_c, M, Cv, tau_g, 
+        #                        qdd_des, p_tilde, v_tilde, Kp, C)
 
         # s.t. vdot_min <= delta <= vdot_max
-        vdot_max = 0.0
-        vdot_min = -np.inf
-        self.mp.AddLinearConstraint(A=np.eye(1),lb=vdot_min*np.eye(1),ub=vdot_max*np.eye(1),vars=delta)
+        #vdot_max = 0.0
+        #vdot_min = -np.inf
+        #self.mp.AddLinearConstraint(A=np.eye(1),lb=vdot_min*np.eye(1),ub=vdot_max*np.eye(1),vars=delta)
 
         # s.t. tau_min <= tau <= tau_max
         #tau_min = -100*np.ones((self.plant.num_actuators(),1))
@@ -370,6 +370,7 @@ class PassivityController(BasicController):
         result = self.solver.Solve(self.mp)
         assert result.is_success()
         tau = result.GetSolution(tau)
+        #tau = S@tau_g
 
         output.SetFromVector(tau)
 

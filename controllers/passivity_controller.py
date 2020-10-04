@@ -15,14 +15,6 @@ class PassivityController(BasicController):
                 "trunk_input",
                 AbstractValue.Make({}))  
 
-        # Declare output ports for logging
-        self.V = 0
-        self.err = 0
-        self.DeclareVectorOutputPort(
-                "output_metrics",
-                BasicVector(2),
-                self.SetLoggingOutputs)
-
         # Set the friction coefficient
         self.mu = 0.7
 
@@ -171,20 +163,6 @@ class PassivityController(BasicController):
 
         return self.mp.AddLinearConstraint(A=A,lb=lb,ub=ub,vars=x)
 
-    def SetLoggingOutputs(self, context, output):
-        """
-        Set outputs for logging, namely a vector consisting of
-        the current simulation function
-
-            V = 1/2 qd_tilde'*M*qd_tilde + pd_tilde'*Kp*pd_tilde
-
-        and the current output error
-
-            pd_tilde'*pd_tilde.
-
-        """
-        output.SetFromVector(np.asarray([self.V,self.err]))
-
     def DoSetControlTorques(self, context, output):
         self.UpdateStoredContext(context)
         q = self.plant.GetPositions(self.context)
@@ -301,10 +279,10 @@ class PassivityController(BasicController):
         qd_tilde = v - qd_des
 
         # Tuning parameters
-        Kp_body = 800
+        Kp_body = 1000
         Kp_feet = 500
 
-        Kd_body = 50
+        Kd_body = 200
         Kd_feet = 30
         
         nf = 3*sum(swing_feet)   # there are 3 foot-related variables (x,y,z positions) for each swing foot
@@ -348,14 +326,14 @@ class PassivityController(BasicController):
                                 qdd_des, p_tilde, v_tilde, Kp, C)
 
         # s.t. delta <= gamma(\|u_2\|_inf)
-        vdot_max = 0.1*trunk_data["u2_max"]
+        vdot_max = 0.5*trunk_data["u2_max"]
         vdot_min = -np.inf
         self.mp.AddLinearConstraint(A=np.eye(1),lb=vdot_min*np.eye(1),ub=vdot_max*np.eye(1),vars=delta)
 
         # s.t. tau_min <= tau <= tau_max
-        tau_min = -100*np.ones((self.plant.num_actuators(),1))
-        tau_max = 100*np.ones((self.plant.num_actuators(),1))
-        self.mp.AddLinearConstraint(A=np.eye(self.plant.num_actuators()),lb=tau_min,ub=tau_max,vars=tau)
+        #tau_min = -100*np.ones((self.plant.num_actuators(),1))
+        #tau_max = 100*np.ones((self.plant.num_actuators(),1))
+        #self.mp.AddLinearConstraint(A=np.eye(self.plant.num_actuators()),lb=tau_min,ub=tau_max,vars=tau)
 
         # s.t.  M*vd + Cv + tau_g = S'*tau + sum(J_c[j]'*f_c[j])
         self.AddDynamicsConstraint(M, vd, Cv, tau_g, S, tau, J_c, f_c)
@@ -370,9 +348,10 @@ class PassivityController(BasicController):
         result = self.solver.Solve(self.mp)
         assert result.is_success()
         tau = result.GetSolution(tau)
-        #tau = S@tau_g
-
         output.SetFromVector(tau)
+        
+        # Fallback PD controller
+        #BasicController.DoSetControlTorques(self, context, output)  
 
         # Set quantities for logging
         self.V = 0.5*qd_tilde.T@M@qd_tilde + p_tilde.T@Kp@p_tilde 

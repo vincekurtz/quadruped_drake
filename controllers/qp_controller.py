@@ -14,13 +14,13 @@ class QPController(BasicController):
         self.DeclareAbstractInputPort(
                 "trunk_input",
                 AbstractValue.Make({}))  
-
+        
         # Set the friction coefficient
         self.mu = 0.7
 
         # Choose a solver
         self.solver = GurobiSolver()
-
+    
     def AddJacobianTypeCost(self, J, qdd, Jd_qd, xdd_des, weight=1.0):
         """
         Add a quadratic cost of the form

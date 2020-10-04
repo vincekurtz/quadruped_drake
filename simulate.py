@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from pydrake.all import *
-from controllers import PassivityController, QPController
+from controllers import PassivityController, QPController, BasicController
 from planners import BasicTrunkPlanner, TowrTrunkPlanner
 import os
 

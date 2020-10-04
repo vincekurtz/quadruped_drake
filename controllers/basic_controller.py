@@ -34,6 +34,15 @@ class BasicController(LeafSystem):
                 "quad_torques",
                 BasicVector(self.plant.num_actuators()),
                 self.DoSetControlTorques)
+        
+        # Declare output port for logging
+        self.V = 0
+        self.err = 0
+        self.DeclareVectorOutputPort(
+                "output_metrics",
+                BasicVector(2),
+                self.SetLoggingOutputs)
+
 
         # Relevant frames for the CoM and each foot
         self.world_frame = self.plant.world_frame()
@@ -208,6 +217,21 @@ class BasicController(LeafSystem):
                                                      self.world_frame)
 
         return pose, J, Jdv.get_coeffs()
+    
+    def SetLoggingOutputs(self, context, output):
+        """
+        Set outputs for logging, namely a vector consisting of
+        the current simulation function
+
+            V = 1/2 qd_tilde'*M*qd_tilde + pd_tilde'*Kp*pd_tilde
+
+        and the current output error
+
+            pd_tilde'*pd_tilde.
+
+        """
+        output.SetFromVector(np.asarray([self.V,self.err]))
+
 
     def DoSetControlTorques(self, context, output):
         """
@@ -233,11 +257,16 @@ class BasicController(LeafSystem):
         pose_body, J_body, Jdv_body = self.CalcFramePoseQuantities(self.body_frame)
 
         # Nominal joint angles
+        #q_nom = np.asarray([ 1.0, 0.0, 0.0, 0.0,     # base orientation
+        #                     0.0, 0.0, 0.3,          # base position
+        #                     0.0, 0.0, 0.0, 0.0,     # ad/ab
+        #                    -0.8,-0.8,-0.8,-0.8,     # hip
+        #                     1.6, 1.6, 1.6, 1.6])    # knee
         q_nom = np.asarray([ 1.0, 0.0, 0.0, 0.0,     # base orientation
-                             0.0, 0.0, 0.3,          # base position
-                             0.0, 0.0, 0.0, 0.0,     # ad/ab
-                            -0.8,-0.8,-0.8,-0.8,     # hip
-                             1.6, 1.6, 1.6, 1.6])    # knee
+                             0.0, 0.0, 0.4,          # base position
+                            -0.1, 0.1,-0.1, 0.1,     # ad/ab
+                             1.0, 1.0,-1.0,-1.0,     # hip
+                            -1.4,-1.4, 1.4, 1.4])    # knee
 
         # Compute desired generalized forces
         q_err = self.plant.MapQDotToVelocity(self.context, q-q_nom)  # Need to use qd=N(q)*v here,

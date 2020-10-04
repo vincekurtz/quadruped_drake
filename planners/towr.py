@@ -31,7 +31,7 @@ class TowrTrunkPlanner(BasicTrunkPlanner):
         self.u2_max = self.ComputeMaxControlInputs()
 
         # Time to wait in a standing position before starting the motion
-        self.wait_time = 0.0
+        self.wait_time = 1.0
 
     def lcm_handler(self, channel, data):
         """
@@ -53,7 +53,7 @@ class TowrTrunkPlanner(BasicTrunkPlanner):
         """
         # Run the trajectory optimization (TOWR)
         # syntax is trunk_mpc gait_type={walk,trot,pace,bound,gallop}  optimize_gait={0,1}
-        sub.call(["build/trunk_mpc","gallop","0"])  
+        sub.call(["build/trunk_mpc","walk","1"])  
 
         # Read the result over LCM
         self.traj_finished = False  # clear out any stored data

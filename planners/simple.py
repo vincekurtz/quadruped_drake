@@ -81,6 +81,9 @@ class BasicTrunkPlanner(LeafSystem):
         self.output_dict["rpydd_body"] = np.zeros(3)
         self.output_dict["pdd_body"] = np.zeros(3)
 
+        # Max control input (accelerations)
+        self.output_dict["u2_max"] = 0.0
+
     def OrientationTest(self, t):
         """
         Given the current time t, generate output values for

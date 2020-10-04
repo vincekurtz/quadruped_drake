@@ -143,7 +143,7 @@ qd0 = np.zeros(plant.num_velocities())
 plant.SetPositions(plant_context,q0)
 plant.SetVelocities(plant_context,qd0)
 
-simulator.AdvanceTo(5.0)
+simulator.AdvanceTo(6.0)
 
 # Plot stuff
 t = logger.sample_times()

@@ -72,8 +72,8 @@ void publish_trunk_state(SplineHolder solution, double t, bool finished=false) {
 int main(int argc, char *argv[]) {
 
     // Command line argument parsing
-    char usage_message[] = "Usage: trunk_mpc gait_type={walk,trot,pace,bound,gallop} optimize_gait={0,1}";
-    if (argc != 3) {
+    char usage_message[] = "Usage: trunk_mpc gait_type={walk,trot,pace,bound,gallop} optimize_gait={0,1} distance_x distance_y";
+    if (argc != 5) {
         std::cout << usage_message << std::endl;
         return 1;
     }
@@ -97,6 +97,9 @@ int main(int argc, char *argv[]) {
 
     bool optimize_gait = !strcmp(argv[2],"1");
 
+    float dist_x = std::stof(argv[3]);
+    float dist_y = std::stof(argv[4]);
+
     // Set up the NLP
     NlpFormulation formulation;
 
@@ -116,7 +119,7 @@ int main(int argc, char *argv[]) {
     formulation.initial_base_.lin.at(kPos).z() = - nominal_stance_B.front().z() + z_ground;
 
     // desired goal state
-    formulation.final_base_.lin.at(towr::kPos) << 2.0, 0.0, 0.5;
+    formulation.final_base_.lin.at(towr::kPos) << dist_x, dist_y, 0.42;
 
     // Total duration of the movement
     double total_duration = 5.0;

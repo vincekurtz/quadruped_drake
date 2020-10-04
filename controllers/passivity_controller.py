@@ -282,7 +282,7 @@ class PassivityController(BasicController):
         Kp_body = 1000
         Kp_feet = 500
 
-        Kd_body = 200
+        Kd_body = 250
         Kd_feet = 30
         
         nf = 3*sum(swing_feet)   # there are 3 foot-related variables (x,y,z positions) for each swing foot

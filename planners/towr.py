@@ -52,8 +52,8 @@ class TowrTrunkPlanner(BasicTrunkPlanner):
         Read in the resulting trajectory over LCM. 
         """
         # Run the trajectory optimization (TOWR)
-        # syntax is trunk_mpc gait_type={walk,trot,pace,bound,gallop}  optimize_gait={0,1}
-        sub.call(["build/trunk_mpc","walk","1"])  
+        # syntax is trunk_mpc gait_type={walk,trot,pace,bound,gallop} optimize_gait={0,1} distance_x distance_y
+        sub.call(["build/trunk_mpc","gallop","1","1.5", "0.0"])  
 
         # Read the result over LCM
         self.traj_finished = False  # clear out any stored data

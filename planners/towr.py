@@ -27,6 +27,9 @@ class TowrTrunkPlanner(BasicTrunkPlanner):
         # Call TOWR to generate a nominal trunk trajectory
         self.GenerateTrunkTrajectory()
 
+        # Compute maximum magnitude of the control inputs (accelerations) 
+        self.u2_max = self.ComputeMaxControlInputs()
+
         # Time to wait in a standing position before starting the motion
         self.wait_time = 0.0
 
@@ -48,11 +51,9 @@ class TowrTrunkPlanner(BasicTrunkPlanner):
         Call a TOWR cpp script to generate a trunk model trajectory. 
         Read in the resulting trajectory over LCM. 
         """
-        # TODO: pass parameters to TOWR, like goal, initial position, 
-        # gait, total trajectory time, etc
-        
         # Run the trajectory optimization (TOWR)
-        sub.call(["build/trunk_mpc","walk","0"])  # syntax is trunk_mpc gait_type={walk,trot,pace,bound,gallop}  optimize_gait={0,1}
+        # syntax is trunk_mpc gait_type={walk,trot,pace,bound,gallop}  optimize_gait={0,1}
+        sub.call(["build/trunk_mpc","gallop","0"])  
 
         # Read the result over LCM
         self.traj_finished = False  # clear out any stored data
@@ -61,6 +62,28 @@ class TowrTrunkPlanner(BasicTrunkPlanner):
 
         while not self.traj_finished:
             self.lc.handle() 
+
+    def ComputeMaxControlInputs(self):
+        """
+        Compute ||u_2||_inf, the maximum L2 norm of the control input, which
+        we take to be foot and body accelerations.
+
+        This can be used for approximate-simulation-based control strategies,
+        which require Vdot <= gamma(||u_2||_inf)
+        """
+        u2_max = 0
+        for data in self.towr_data:
+            u2_i = np.linalg.norm(
+                        np.hstack([data.lf_pdd,
+                              data.rf_pdd,
+                              data.lh_pdd,
+                              data.rh_pdd,
+                              data.base_rpydd,
+                              data.base_pdd])
+                        )
+            if u2_i > u2_max:
+                u2_max = u2_i
+        return u2_max
 
     def SetTrunkOutputs(self, context, output):
         self.output_dict = output.get_mutable_value()
@@ -116,3 +139,7 @@ class TowrTrunkPlanner(BasicTrunkPlanner):
             # Body accelerations
             self.output_dict["rpydd_body"] = np.array(data.base_rpydd)
             self.output_dict["pdd_body"] = np.array(data.base_pdd)
+
+            # Maximum control input (accelerations) magnitude across the trajectory
+            self.output_dict["u2_max"] = self.u2_max 
+

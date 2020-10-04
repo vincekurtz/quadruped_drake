@@ -116,7 +116,7 @@ int main(int argc, char *argv[]) {
     formulation.initial_base_.lin.at(kPos).z() = - nominal_stance_B.front().z() + z_ground;
 
     // desired goal state
-    formulation.final_base_.lin.at(towr::kPos) << 1.0, 0.0, 0.5;
+    formulation.final_base_.lin.at(towr::kPos) << 2.0, 0.0, 0.5;
 
     // Total duration of the movement
     double total_duration = 5.0;

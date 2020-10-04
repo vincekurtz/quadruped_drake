@@ -301,10 +301,10 @@ class PassivityController(BasicController):
         qd_tilde = v - qd_des
 
         # Tuning parameters
-        Kp_body = 500
+        Kp_body = 800
         Kp_feet = 500
 
-        Kd_body = 30
+        Kd_body = 50
         Kd_feet = 30
         
         nf = 3*sum(swing_feet)   # there are 3 foot-related variables (x,y,z positions) for each swing foot
@@ -341,14 +341,14 @@ class PassivityController(BasicController):
         #                              vars=tau)
 
         # min delta
-        #self.mp.AddCost(0.5*delta[0,0])
+        #self.mp.AddCost(1.0*delta[0,0])
 
         # s.t. Vdot <= delta
         self.AddVdotConstraint(tau, f_c, delta, qd_tilde, S, J_c, M, Cv, tau_g, 
                                 qdd_des, p_tilde, v_tilde, Kp, C)
 
-        # s.t. vdot_min <= delta <= vdot_max
-        vdot_max = 0.0
+        # s.t. delta <= gamma(\|u_2\|_inf)
+        vdot_max = 0.1*trunk_data["u2_max"]
         vdot_min = -np.inf
         self.mp.AddLinearConstraint(A=np.eye(1),lb=vdot_min*np.eye(1),ub=vdot_max*np.eye(1),vars=delta)
 

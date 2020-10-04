@@ -28,7 +28,7 @@ class TowrTrunkPlanner(BasicTrunkPlanner):
         self.GenerateTrunkTrajectory()
 
         # Time to wait in a standing position before starting the motion
-        self.wait_time = 1.5
+        self.wait_time = 0.0
 
     def lcm_handler(self, channel, data):
         """

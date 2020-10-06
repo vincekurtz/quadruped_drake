@@ -154,14 +154,14 @@ int main(int argc, char *argv[]) {
     // solver->SetOption("derivative_test", "first-order");
     auto solver = std::make_shared<ifopt::IpoptSolver>();
     solver->SetOption("jacobian_approximation", "exact"); // "finite difference-values"
-    solver->SetOption("max_cpu_time", 20.0);
+    solver->SetOption("max_cpu_time", 50.0);
     solver->Solve(nlp);
     
     // Send solution over LCM
     lcm::LCM lcm;
     trunklcm::trunk_state_t state;
 
-    double dt = 2e-3;
+    double dt = 1e-3;
     for (double t=0; t<total_duration; t=t+dt) {
         publish_trunk_state(solution, t);
     }

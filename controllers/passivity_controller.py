@@ -279,10 +279,10 @@ class PassivityController(BasicController):
         qd_tilde = v - qd_des
 
         # Tuning parameters
-        Kp_body = 1000
+        Kp_body = 500
         Kp_feet = 500
 
-        Kd_body = 250
+        Kd_body = 200
         Kd_feet = 30
         
         nf = 3*sum(swing_feet)   # there are 3 foot-related variables (x,y,z positions) for each swing foot
@@ -326,14 +326,14 @@ class PassivityController(BasicController):
                                 qdd_des, p_tilde, v_tilde, Kp, C)
 
         # s.t. delta <= gamma(\|u_2\|_inf)
-        vdot_max = 0.5*trunk_data["u2_max"]
+        vdot_max = 1.0*trunk_data["u2_max"]
         vdot_min = -np.inf
         self.mp.AddLinearConstraint(A=np.eye(1),lb=vdot_min*np.eye(1),ub=vdot_max*np.eye(1),vars=delta)
 
         # s.t. tau_min <= tau <= tau_max
-        #tau_min = -100*np.ones((self.plant.num_actuators(),1))
-        #tau_max = 100*np.ones((self.plant.num_actuators(),1))
-        #self.mp.AddLinearConstraint(A=np.eye(self.plant.num_actuators()),lb=tau_min,ub=tau_max,vars=tau)
+        tau_min = -150*np.ones((self.plant.num_actuators(),1))
+        tau_max = 150*np.ones((self.plant.num_actuators(),1))
+        self.mp.AddLinearConstraint(A=np.eye(self.plant.num_actuators()),lb=tau_min,ub=tau_max,vars=tau)
 
         # s.t.  M*vd + Cv + tau_g = S'*tau + sum(J_c[j]'*f_c[j])
         self.AddDynamicsConstraint(M, vd, Cv, tau_g, S, tau, J_c, f_c)

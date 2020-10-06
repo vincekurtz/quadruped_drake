@@ -155,6 +155,6 @@ plt.plot(t, V, linewidth='2', label='Simulation Function')
 plt.plot(t, err, linewidth='2', label='Output Error')
 plt.legend()
 plt.xlabel("time (s)")
-plt.ylim((-0.001,0.015))
+plt.ylim((-0.001,0.045))
 
 plt.show()

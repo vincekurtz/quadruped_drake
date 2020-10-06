@@ -311,29 +311,30 @@ class PassivityController(BasicController):
         delta = self.mp.NewContinuousVariables(1,1,'delta')
 
         # min || tau_nom - S'*tau + sum(J'*f) ||^2
-        self.AddGeneralizedForceCost(tau_nom, S, tau, J_c, f_c, weight=1.0)
+        #self.AddGeneralizedForceCost(tau_nom, S, tau, J_c, f_c, weight=1.0)
 
         # min w*|| tau ||^2
-        #self.mp.AddQuadraticErrorCost(Q=0.1*np.eye(self.plant.num_actuators()),
-        #                              x_desired = np.zeros(self.plant.num_actuators()),
-        #                              vars=tau)
+        self.mp.AddQuadraticErrorCost(Q=0.01*np.eye(self.plant.num_actuators()),
+                                      x_desired = np.zeros(self.plant.num_actuators()),
+                                      vars=tau)
 
         # min delta
-        #self.mp.AddCost(1.0*delta[0,0])
+        self.mp.AddCost(1.0*delta[0,0])
 
         # s.t. Vdot <= delta
         self.AddVdotConstraint(tau, f_c, delta, qd_tilde, S, J_c, M, Cv, tau_g, 
                                 qdd_des, p_tilde, v_tilde, Kp, C)
 
         # s.t. delta <= gamma(\|u_2\|_inf)
-        vdot_max = 1.0*trunk_data["u2_max"]
+        #vdot_max = 0.0*trunk_data["u2_max"]
+        vdot_max = -v_tilde.T@Kd@v_tilde
         vdot_min = -np.inf
         self.mp.AddLinearConstraint(A=np.eye(1),lb=vdot_min*np.eye(1),ub=vdot_max*np.eye(1),vars=delta)
 
         # s.t. tau_min <= tau <= tau_max
-        tau_min = -150*np.ones((self.plant.num_actuators(),1))
-        tau_max = 150*np.ones((self.plant.num_actuators(),1))
-        self.mp.AddLinearConstraint(A=np.eye(self.plant.num_actuators()),lb=tau_min,ub=tau_max,vars=tau)
+        #tau_min = -150*np.ones((self.plant.num_actuators(),1))
+        #tau_max = 150*np.ones((self.plant.num_actuators(),1))
+        #self.mp.AddLinearConstraint(A=np.eye(self.plant.num_actuators()),lb=tau_min,ub=tau_max,vars=tau)
 
         # s.t.  M*vd + Cv + tau_g = S'*tau + sum(J_c[j]'*f_c[j])
         self.AddDynamicsConstraint(M, vd, Cv, tau_g, S, tau, J_c, f_c)

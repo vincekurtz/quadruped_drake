@@ -19,7 +19,7 @@ robot_description_file = "drake/" + os.path.relpath(robot_description_path, star
 robot_urdf  = FindResourceOrThrow(robot_description_file)
 builder = DiagramBuilder()
 scene_graph = builder.AddSystem(SceneGraph())
-dt = 2e-3
+dt = 1e-3
 plant = builder.AddSystem(MultibodyPlant(time_step=dt))
 plant.RegisterAsSourceForSceneGraph(scene_graph) 
 quad = Parser(plant=plant).AddModelFromFile(robot_urdf,"quad")
@@ -80,8 +80,8 @@ for foot in ["lf","rf","lh","rh"]:
     trunk_frame_ids[foot] = foot_frame.id()
 
 # Create high-level trunk-model planner and low-level whole-body controller
-#planner = builder.AddSystem(BasicTrunkPlanner(trunk_frame_ids))
-planner = builder.AddSystem(TowrTrunkPlanner(trunk_frame_ids))
+planner = builder.AddSystem(BasicTrunkPlanner(trunk_frame_ids))
+#planner = builder.AddSystem(TowrTrunkPlanner(trunk_frame_ids))
 controller = builder.AddSystem(PassivityController(plant,dt))
 #controller = builder.AddSystem(QPController(plant,dt))
 
@@ -155,6 +155,6 @@ plt.plot(t, V, linewidth='2', label='Simulation Function')
 plt.plot(t, err, linewidth='2', label='Output Error')
 plt.legend()
 plt.xlabel("time (s)")
-plt.ylim((-0.001,0.045))
+plt.ylim((-0.001,0.01))
 
 plt.show()

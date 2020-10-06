@@ -109,7 +109,8 @@ class BasicTrunkPlanner(LeafSystem):
     def SetTrunkOutputs(self, context, output):
         self.output_dict = output.get_mutable_value()
 
-        self.RaiseFoot(context.get_time())
+        self.SimpleStanding()
+        #self.RaiseFoot(context.get_time())
 
     def SetGeometryOutputs(self, context, output):
         fpv = output.get_mutable_value()

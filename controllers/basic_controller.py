@@ -1,6 +1,9 @@
 import numpy as np
 from pydrake.all import *
 
+import lcm
+from lcm_types.cheetahlcm import leg_control_data_lcmt, leg_control_command_lcmt
+
 class BasicController(LeafSystem):
     """
     A simple PD controller for a quadruped robot. 
@@ -43,6 +46,13 @@ class BasicController(LeafSystem):
                 BasicVector(2),
                 self.SetLoggingOutputs)
 
+        # Set up LCM for communication with Mini Cheetah robot/simulator
+        self.lc = lcm.LCM()
+        
+        # LCM subscriber gives us estimates of q, qd, tau
+        self.q    
+        self.qd
+        subscription = self.lc.subscribe("lcm_data_topic", self.cheetah_data_callback)
 
         # Relevant frames for the CoM and each foot
         self.world_frame = self.plant.world_frame()
@@ -58,6 +68,18 @@ class BasicController(LeafSystem):
         self.rf_foot_frame_autodiff = self.plant_autodiff.GetFrameByName("RF_FOOT")
         self.lh_foot_frame_autodiff = self.plant_autodiff.GetFrameByName("LH_FOOT")
         self.rh_foot_frame_autodiff = self.plant_autodiff.GetFrameByName("RH_FOOT")
+
+    def cheetah_data_callback(self, channel, data):
+        """
+        Handle data coming from the mini cheetah (robot or simulator). 
+        
+        Sets self.q, self.qd according to latest estimates of robot state. 
+        """
+        # TODO: define new lcm type which includes q,v for whole model, in order
+        # that corresponds with drake model. Send this in the custom LCM controller. 
+        msg = leg_control_data_lcmt.decode(data)
+        self.q = msg.q
+        self.qd = msg.qd
 
     def UpdateStoredContext(self, context):
         """

@@ -46,7 +46,7 @@ class BasicController(LeafSystem):
 
         # Relevant frames for the CoM and each foot
         self.world_frame = self.plant.world_frame()
-        self.body_frame = self.plant.GetFrameByName("base")   # "body" for mini cheetah, "base" for ANYmal
+        self.body_frame = self.plant.GetFrameByName("body")   # "body" for mini cheetah, "base" for ANYmal
 
         self.lf_foot_frame = self.plant.GetFrameByName("LF_FOOT")  # left front
         self.rf_foot_frame = self.plant.GetFrameByName("RF_FOOT")  # right front
@@ -257,16 +257,16 @@ class BasicController(LeafSystem):
         pose_body, J_body, Jdv_body = self.CalcFramePoseQuantities(self.body_frame)
 
         # Nominal joint angles
-        #q_nom = np.asarray([ 1.0, 0.0, 0.0, 0.0,     # base orientation
-        #                     0.0, 0.0, 0.3,          # base position
-        #                     0.0, 0.0, 0.0, 0.0,     # ad/ab
-        #                    -0.8,-0.8,-0.8,-0.8,     # hip
-        #                     1.6, 1.6, 1.6, 1.6])    # knee
         q_nom = np.asarray([ 1.0, 0.0, 0.0, 0.0,     # base orientation
-                             0.0, 0.0, 0.4,          # base position
-                            -0.1, 0.1,-0.1, 0.1,     # ad/ab
-                             1.0, 1.0,-1.0,-1.0,     # hip
-                            -1.4,-1.4, 1.4, 1.4])    # knee
+                             0.0, 0.0, 0.3,          # base position
+                             0.0, 0.0, 0.0, 0.0,     # ad/ab
+                            -0.8,-0.8,-0.8,-0.8,     # hip
+                             1.6, 1.6, 1.6, 1.6])    # knee
+        #q_nom = np.asarray([ 1.0, 0.0, 0.0, 0.0,     # base orientation
+        #                     0.0, 0.0, 0.4,          # base position
+        #                    -0.1, 0.1,-0.1, 0.1,     # ad/ab
+        #                     1.0, 1.0,-1.0,-1.0,     # hip
+        #                    -1.4,-1.4, 1.4, 1.4])    # knee
 
         # Compute desired generalized forces
         q_err = self.plant.MapQDotToVelocity(self.context, q-q_nom)  # Need to use qd=N(q)*v here,

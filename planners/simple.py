@@ -42,14 +42,14 @@ class BasicTrunkPlanner(LeafSystem):
         standing on all four feet.
         """
         # Foot positions
-        #self.output_dict["p_lf"] = np.array([ 0.175, 0.11, 0.0])   # mini cheetah
-        #self.output_dict["p_rf"] = np.array([ 0.175,-0.11, 0.0])
-        #self.output_dict["p_lh"] = np.array([-0.2,   0.11, 0.0])
-        #self.output_dict["p_rh"] = np.array([-0.2,  -0.11, 0.0])
-        self.output_dict["p_lf"] = np.array([ 0.34, 0.19, 0.0])    # anymal
-        self.output_dict["p_rf"] = np.array([ 0.34,-0.19, 0.0])
-        self.output_dict["p_lh"] = np.array([-0.34, 0.19, 0.0])
-        self.output_dict["p_rh"] = np.array([-0.34,-0.19, 0.0])
+        self.output_dict["p_lf"] = np.array([ 0.175, 0.11, 0.0])   # mini cheetah
+        self.output_dict["p_rf"] = np.array([ 0.175,-0.11, 0.0])
+        self.output_dict["p_lh"] = np.array([-0.2,   0.11, 0.0])
+        self.output_dict["p_rh"] = np.array([-0.2,  -0.11, 0.0])
+        #self.output_dict["p_lf"] = np.array([ 0.34, 0.19, 0.0])    # anymal
+        #self.output_dict["p_rf"] = np.array([ 0.34,-0.19, 0.0])
+        #self.output_dict["p_lh"] = np.array([-0.34, 0.19, 0.0])
+        #self.output_dict["p_rh"] = np.array([-0.34,-0.19, 0.0])
 
         # Foot velocities
         self.output_dict["pd_lf"] = np.zeros(3)
@@ -71,7 +71,7 @@ class BasicTrunkPlanner(LeafSystem):
 
         # Body pose
         self.output_dict["rpy_body"] = np.array([0.0, 0.0, 0.0])
-        self.output_dict["p_body"] = np.array([0.0, 0.0, 0.42])
+        self.output_dict["p_body"] = np.array([0.0, 0.0, 0.3])
 
         # Body velocities
         self.output_dict["rpyd_body"] = np.zeros(3)
@@ -100,7 +100,7 @@ class BasicTrunkPlanner(LeafSystem):
         off the ground.
         """
         self.SimpleStanding()
-        self.output_dict["p_body"] += np.array([-0.1, 0.1, 0.0])
+        self.output_dict["p_body"] += np.array([-0.1, 0.05, 0.0])
 
         if t>1:
             self.output_dict["contact_states"] = [True,False,True,True]
@@ -109,7 +109,8 @@ class BasicTrunkPlanner(LeafSystem):
     def SetTrunkOutputs(self, context, output):
         self.output_dict = output.get_mutable_value()
 
-        self.SimpleStanding()
+        #self.SimpleStanding()
+        self.OrientationTest(context.get_time())
         #self.RaiseFoot(context.get_time())
 
     def SetGeometryOutputs(self, context, output):

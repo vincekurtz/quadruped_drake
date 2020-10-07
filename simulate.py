@@ -10,16 +10,16 @@ show_trunk_model = True
 # Drake only loads things relative to the drake path, so we have to do some hacking
 # to load an arbitrary file
 #robot_description_path = "./models/anymal_b_simple_description/urdf/anymal_drake.urdf" # relative to this file
-robot_description_path = "./models/anymal_b_simple_description/urdf/anymal_drake_no_collision.urdf" # relative to this file
+#robot_description_path = "./models/anymal_b_simple_description/urdf/anymal_drake_no_collision.urdf" # relative to this file
 #robot_description_path = "./models/mini_cheetah/mini_cheetah_simple_v2.urdf"
-#robot_description_path = "./models/mini_cheetah/mini_cheetah_mesh.urdf"
+robot_description_path = "./models/mini_cheetah/mini_cheetah_mesh.urdf"
 drake_path = getDrakePath()
 robot_description_file = "drake/" + os.path.relpath(robot_description_path, start=drake_path)
 
 robot_urdf  = FindResourceOrThrow(robot_description_file)
 builder = DiagramBuilder()
 scene_graph = builder.AddSystem(SceneGraph())
-dt = 1e-3
+dt = 5e-3
 plant = builder.AddSystem(MultibodyPlant(time_step=dt))
 plant.RegisterAsSourceForSceneGraph(scene_graph) 
 quad = Parser(plant=plant).AddModelFromFile(robot_urdf,"quad")
@@ -54,10 +54,10 @@ trunk_source = scene_graph.RegisterSource("trunk")
 trunk_frame = GeometryFrame("trunk")
 scene_graph.RegisterFrame(trunk_source, trunk_frame)
 
-trunk_shape = Box(0.6,0.3,0.3)
+trunk_shape = Box(0.4,0.2,0.1)
 trunk_color = np.array([0.1,0.1,0.1,0.4])
 X_trunk = RigidTransform()
-X_trunk.set_translation(np.array([0.0,0.0,0.08]))
+X_trunk.set_translation(np.array([0.0,0.0,0.0]))
 
 trunk_geometry = GeometryInstance(X_trunk,trunk_shape,"trunk")
 if show_trunk_model:
@@ -70,7 +70,7 @@ for foot in ["lf","rf","lh","rh"]:
     foot_frame = GeometryFrame(foot)
     scene_graph.RegisterFrame(trunk_source, foot_frame)
    
-    foot_shape = Sphere(0.03)
+    foot_shape = Sphere(0.02)
     X_foot = RigidTransform()
     foot_geometry = GeometryInstance(X_foot,foot_shape,foot)
     if show_trunk_model:
@@ -82,8 +82,8 @@ for foot in ["lf","rf","lh","rh"]:
 # Create high-level trunk-model planner and low-level whole-body controller
 planner = builder.AddSystem(BasicTrunkPlanner(trunk_frame_ids))
 #planner = builder.AddSystem(TowrTrunkPlanner(trunk_frame_ids))
-controller = builder.AddSystem(PassivityController(plant,dt))
-#controller = builder.AddSystem(QPController(plant,dt))
+#controller = builder.AddSystem(PassivityController(plant,dt))
+controller = builder.AddSystem(QPController(plant,dt))
 
 # Set up the Scene Graph
 builder.Connect(
@@ -129,16 +129,16 @@ simulator.set_publish_every_time_step(False)
 
 # Set initial states
 plant_context = diagram.GetMutableSubsystemContext(plant, diagram_context)
-#q0 = np.asarray([ 1.0, 0.0, 0.0, 0.0,     # base orientation
-#                  0.0, 0.0, 0.3,          # base position
-#                  0.0, 0.0, 0.0, 0.0,     # ad/ab
-#                 -0.8,-0.8,-0.8,-0.8,     # hip
-#                  1.6, 1.6, 1.6, 1.6])    # knee
 q0 = np.asarray([ 1.0, 0.0, 0.0, 0.0,     # base orientation
-                  0.0, 0.0, 0.4,          # base position
-                 -0.1, 0.1,-0.1, 0.1,     # ad/ab
-                  1.0, 1.0,-1.0,-1.0,     # hip
-                 -1.4,-1.4, 1.4, 1.4])    # knee
+                  0.0, 0.0, 0.3,          # base position
+                  0.0, 0.0, 0.0, 0.0,     # ad/ab
+                 -0.8,-0.8,-0.8,-0.8,     # hip
+                  1.6, 1.6, 1.6, 1.6])    # knee
+#q0 = np.asarray([ 1.0, 0.0, 0.0, 0.0,     # base orientation
+#                  0.0, 0.0, 0.4,          # base position
+#                 -0.1, 0.1,-0.1, 0.1,     # ad/ab
+#                  1.0, 1.0,-1.0,-1.0,     # hip
+#                 -1.4,-1.4, 1.4, 1.4])    # knee
 qd0 = np.zeros(plant.num_velocities())
 plant.SetPositions(plant_context,q0)
 plant.SetVelocities(plant_context,qd0)
@@ -146,15 +146,15 @@ plant.SetVelocities(plant_context,qd0)
 simulator.AdvanceTo(6.0)
 
 # Plot stuff
-t = logger.sample_times()
-V = logger.data()[0,:]
-err = logger.data()[1,:]
-
-plt.figure()
-plt.plot(t, V, linewidth='2', label='Simulation Function')
-plt.plot(t, err, linewidth='2', label='Output Error')
-plt.legend()
-plt.xlabel("time (s)")
-plt.ylim((-0.001,0.01))
-
-plt.show()
+#t = logger.sample_times()
+#V = logger.data()[0,:]
+#err = logger.data()[1,:]
+#
+#plt.figure()
+#plt.plot(t, V, linewidth='2', label='Simulation Function')
+#plt.plot(t, err, linewidth='2', label='Output Error')
+#plt.legend()
+#plt.xlabel("time (s)")
+#plt.ylim((-0.001,0.01))
+#
+#plt.show()

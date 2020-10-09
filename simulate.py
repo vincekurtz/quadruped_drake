@@ -43,8 +43,8 @@ plant.RegisterVisualGeometry(
         np.array([0.5,0.5,0.5,0.0]))    # Color set to be completely transparent
 
 # Turn off gravity
-#g = plant.mutable_gravity_field()
-#g.set_gravity_vector([0,0,0])
+g = plant.mutable_gravity_field()
+g.set_gravity_vector([0,0,0])
 
 plant.Finalize()
 assert plant.geometry_source_is_registered()
@@ -131,10 +131,15 @@ simulator.set_publish_every_time_step(False)
 # Set initial states
 plant_context = diagram.GetMutableSubsystemContext(plant, diagram_context)
 q0 = np.asarray([ 1.0, 0.0, 0.0, 0.0,     # base orientation
-                  0.0, 0.0, 0.3,          # base position
+                  0.0, 0.0, 0.4,          # base position
                   0.0, 0.0, 0.0, 0.0,     # ad/ab
-                 -0.8,-0.8,-0.8,-0.8,     # hip
-                  1.6, 1.6, 1.6, 1.6])    # knee
+                 -0.0,-0.0,-0.0,-0.0,     # hip
+                  0.0, 0.0, 0.0, 0.0])    # knee
+#q0 = np.asarray([ 1.0, 0.0, 0.0, 0.0,     # base orientation
+#                  0.0, 0.0, 0.3,          # base position
+#                  0.0, 0.0, 0.0, 0.0,     # ad/ab
+#                 -0.8,-0.8,-0.8,-0.8,     # hip
+#                  1.6, 1.6, 1.6, 1.6])    # knee
 #q0 = np.asarray([ 1.0, 0.0, 0.0, 0.0,     # base orientation
 #                  0.0, 0.0, 0.4,          # base position
 #                 -0.1, 0.1,-0.1, 0.1,     # ad/ab

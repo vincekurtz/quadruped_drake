@@ -83,6 +83,11 @@ class BasicController(LeafSystem):
         self.q = np.asarray(msg.q)
         self.v = np.asarray(msg.v)
 
+        print("adab: ", self.q[7:11])
+        print("hip: ", self.q[11:15])
+        print("knee: ", self.q[15:19])
+        print("")
+
     def UpdateStoredContext(self, context):
         """
         Use the data in the given input context to update self.context.
@@ -273,6 +278,16 @@ class BasicController(LeafSystem):
             self.UpdateStoredContext(context)
             q = self.plant.GetPositions(self.context)
             v = self.plant.GetVelocities(self.context)
+
+        # DEBUG
+        q_nom = self.q
+        self.UpdateStoredContext(context)
+        q = self.plant.GetPositions(self.context)
+        v = self.plant.GetVelocities(self.context)
+        print("adab: ", q[7:11])
+        print("hip: ", q[11:15])
+        print("knee: ", q[15:19])
+        print("")
         
         # Tuning parameters
         Kp = 10.0*np.eye(self.plant.num_velocities())
@@ -290,11 +305,11 @@ class BasicController(LeafSystem):
         pose_body, J_body, Jdv_body = self.CalcFramePoseQuantities(self.body_frame)
 
         # Nominal joint angles
-        q_nom = np.asarray([ 1.0, 0.0, 0.0, 0.0,     # base orientation
-                             0.0, 0.0, 0.3,          # base position
-                             0.0, 0.0, 0.0, 0.0,     # ad/ab
-                            -0.8,-0.8,-0.8,-0.8,     # hip
-                             1.6, 1.6, 1.6, 1.6])    # knee
+        #q_nom = np.asarray([ 1.0, 0.0, 0.0, 0.0,     # base orientation
+        #                     0.0, 0.0, 0.3,          # base position
+        #                     0.0, 0.0, 0.0, 0.0,     # ad/ab
+        #                    -0.8,-0.8,-0.8,-0.8,     # hip
+        #                     1.6, 1.6, 1.6, 1.6])    # knee
         #q_nom = np.asarray([ 1.0, 0.0, 0.0, 0.0,     # base orientation
         #                     0.0, 0.0, 0.4,          # base position
         #                    -0.1, 0.1,-0.1, 0.1,     # ad/ab
@@ -309,8 +324,7 @@ class BasicController(LeafSystem):
 
         # Use actuation matrix to map generalized forces to control inputs
         u = S@tau
-
-        print(S.T)
+        u = np.clip(u,-100,100)
 
         if self.use_lcm:
             # Send control outputs over LCM

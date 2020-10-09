@@ -2,7 +2,7 @@ import numpy as np
 from pydrake.all import *
 
 import lcm
-from lcm_types.cheetahlcm import leg_control_data_lcmt, leg_control_command_lcmt
+from lcm_types.cheetahlcm import robot_state_control_lcmt
 
 class BasicController(LeafSystem):
     """
@@ -17,7 +17,7 @@ class BasicController(LeafSystem):
     Includes some basic dynamics computations, so other
     more complex controllers can inherit from this class.
     """
-    def __init__(self, plant, dt):
+    def __init__(self, plant, dt, use_lcm=False):
         LeafSystem.__init__(self)
 
         self.dt = dt
@@ -46,13 +46,17 @@ class BasicController(LeafSystem):
                 BasicVector(2),
                 self.SetLoggingOutputs)
 
-        # Set up LCM for communication with Mini Cheetah robot/simulator
-        self.lc = lcm.LCM()
-        
-        # LCM subscriber gives us estimates of q, qd, tau
-        self.q    
-        self.qd
-        subscription = self.lc.subscribe("lcm_data_topic", self.cheetah_data_callback)
+        # Handle whether or not we're communicating with a real robot and/or simulator
+        # over LCM. 
+        self.use_lcm = use_lcm
+        if self.use_lcm:
+            
+            self.lc = lcm.LCM()
+           
+            # LCM subscriber gives us estimates of q, qd, tau
+            self.q = np.zeros(self.plant.num_positions())
+            self.v = np.zeros(self.plant.num_velocities())
+            subscription = self.lc.subscribe("robot_current_state", self.lcm_callback)
 
         # Relevant frames for the CoM and each foot
         self.world_frame = self.plant.world_frame()
@@ -69,17 +73,15 @@ class BasicController(LeafSystem):
         self.lh_foot_frame_autodiff = self.plant_autodiff.GetFrameByName("LH_FOOT")
         self.rh_foot_frame_autodiff = self.plant_autodiff.GetFrameByName("RH_FOOT")
 
-    def cheetah_data_callback(self, channel, data):
+    def lcm_callback(self, channel, data):
         """
-        Handle data coming from the mini cheetah (robot or simulator). 
+        Handle data coming over LCM from another simulator or a real robot. 
         
         Sets self.q, self.qd according to latest estimates of robot state. 
         """
-        # TODO: define new lcm type which includes q,v for whole model, in order
-        # that corresponds with drake model. Send this in the custom LCM controller. 
-        msg = leg_control_data_lcmt.decode(data)
-        self.q = msg.q
-        self.qd = msg.qd
+        msg = robot_state_control_lcmt.decode(data)
+        self.q = np.asarray(msg.q)
+        self.v = np.asarray(msg.v)
 
     def UpdateStoredContext(self, context):
         """
@@ -259,13 +261,22 @@ class BasicController(LeafSystem):
         """
         This function gets called at every timestep and sets output torques. 
         """
-        self.UpdateStoredContext(context)
-        q = self.plant.GetPositions(self.context)
-        v = self.plant.GetVelocities(self.context)
+        if self.use_lcm:
+            # Get robot's current state (q,v) from LCM
+            self.lc.handle()
+            self.plant.SetPositions(self.context,self.q)
+            self.plant.SetVelocities(self.context,self.v)
+            q = self.q
+            v = self.v
+        else:
+            # Get robot's current state (q,v) from Drake
+            self.UpdateStoredContext(context)
+            q = self.plant.GetPositions(self.context)
+            v = self.plant.GetVelocities(self.context)
         
         # Tuning parameters
-        Kp = 50*np.eye(self.plant.num_velocities())
-        Kd = 2*np.eye(self.plant.num_velocities())
+        Kp = 10.0*np.eye(self.plant.num_velocities())
+        Kd = 0.0*np.eye(self.plant.num_velocities())
 
         # Fun with dynamics
         M, Cv, tau_g, S = self.CalcDynamics()
@@ -298,4 +309,18 @@ class BasicController(LeafSystem):
 
         # Use actuation matrix to map generalized forces to control inputs
         u = S@tau
-        output.SetFromVector(u)
+
+        print(S.T)
+
+        if self.use_lcm:
+            # Send control outputs over LCM
+            msg = robot_state_control_lcmt()
+            msg.tau = u
+            self.lc.publish("robot_control_input", msg.encode())
+
+            # just send zero control input to Drake.
+            # TODO: update simulator state to match LCM data
+            output.SetFromVector(np.zeros(self.plant.num_actuators()))   
+        else:
+            # Send control outputs to drake
+            output.SetFromVector(u)

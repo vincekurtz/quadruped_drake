@@ -1,0 +1,7 @@
+package cheetahlcm;
+
+struct robot_state_control_lcmt {
+    float q[19];
+    float v[18];
+    float tau[12];
+}

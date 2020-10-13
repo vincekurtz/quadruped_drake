@@ -83,11 +83,6 @@ class BasicController(LeafSystem):
         self.q = np.asarray(msg.q)
         self.v = np.asarray(msg.v)
 
-        print("adab: ", self.q[7:11])
-        print("hip: ", self.q[11:15])
-        print("knee: ", self.q[15:19])
-        print("")
-
     def UpdateStoredContext(self, context):
         """
         Use the data in the given input context to update self.context.
@@ -284,14 +279,10 @@ class BasicController(LeafSystem):
         self.UpdateStoredContext(context)
         q = self.plant.GetPositions(self.context)
         v = self.plant.GetVelocities(self.context)
-        print("adab: ", q[7:11])
-        print("hip: ", q[11:15])
-        print("knee: ", q[15:19])
-        print("")
         
         # Tuning parameters
-        Kp = 10.0*np.eye(self.plant.num_velocities())
-        Kd = 0.0*np.eye(self.plant.num_velocities())
+        Kp = 1.0*np.eye(self.plant.num_velocities())
+        Kd = 0.1*np.eye(self.plant.num_velocities())
 
         # Fun with dynamics
         M, Cv, tau_g, S = self.CalcDynamics()
@@ -334,7 +325,7 @@ class BasicController(LeafSystem):
 
             # just send zero control input to Drake.
             # TODO: update simulator state to match LCM data
-            output.SetFromVector(np.zeros(self.plant.num_actuators()))   
+            output.SetFromVector(u)   
         else:
             # Send control outputs to drake
             output.SetFromVector(u)

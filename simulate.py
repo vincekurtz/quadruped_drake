@@ -131,9 +131,9 @@ simulator.set_publish_every_time_step(False)
 # Set initial states
 plant_context = diagram.GetMutableSubsystemContext(plant, diagram_context)
 q0 = np.asarray([ 1.0, 0.0, 0.0, 0.0,     # base orientation
-                  0.0, 0.0, 0.4,          # base position
+                  0.0, 0.0, 0.5,          # base position
                   0.0, 0.0, 0.0, 0.0,     # ad/ab
-                 -0.0,-0.0,-0.0,-0.0,     # hip
+                  0.0, 0.0, 0.0, 0.0,     # hip
                   0.0, 0.0, 0.0, 0.0])    # knee
 #q0 = np.asarray([ 1.0, 0.0, 0.0, 0.0,     # base orientation
 #                  0.0, 0.0, 0.3,          # base position

@@ -50,7 +50,6 @@ class BasicController(LeafSystem):
         # over LCM. 
         self.use_lcm = use_lcm
         if self.use_lcm:
-            
             self.lc = lcm.LCM()
            
             # LCM subscriber gives us estimates of q, qd, tau
@@ -264,30 +263,22 @@ class BasicController(LeafSystem):
         if self.use_lcm:
             # Get robot's current state (q,v) from LCM
             self.lc.handle()
-            self.plant.SetPositions(self.context,self.q)
-            self.plant.SetVelocities(self.context,self.v)
             q = self.q
             v = self.v
+            self.plant.SetPositions(self.context,self.q)
+            self.plant.SetVelocities(self.context,self.v)
         else:
             # Get robot's current state (q,v) from Drake
             self.UpdateStoredContext(context)
             q = self.plant.GetPositions(self.context)
             v = self.plant.GetVelocities(self.context)
 
+        # Some dynamics computations
+        M, C, tau_g, S = self.CalcDynamics()
+
         # Tuning parameters
         Kp = 50.0*np.eye(self.plant.num_velocities())
         Kd = 2.0*np.eye(self.plant.num_velocities())
-
-        # Fun with dynamics
-        M, Cv, tau_g, S = self.CalcDynamics()
-        #C = self.CalcCoriolisMatrix()    # note that computations based on autodiff show things way down
-        p_com, J_com, Jdv_com = self.CalcComQuantities()
-        #Jd_com = self.CalcComJacobianDot()
-
-        p_lf, J_lf, Jdv_lf = self.CalcFramePositionQuantities(self.lf_foot_frame)
-        #Jd_lf = self.CalcFrameJacobianDot(self.lf_foot_frame_autodiff)
-
-        pose_body, J_body, Jdv_body = self.CalcFramePoseQuantities(self.body_frame)
 
         # Nominal joint angles
         q_nom = np.asarray([ 1.0, 0.0, 0.0, 0.0,     # base orientation
@@ -295,12 +286,7 @@ class BasicController(LeafSystem):
                              0.0, 0.0, 0.0, 0.0,     # ad/ab
                             -0.8,-0.8,-0.8,-0.8,     # hip
                              1.6, 1.6, 1.6, 1.6])    # knee
-        #q_nom = np.asarray([ 1.0, 0.0, 0.0, 0.0,     # base orientation
-        #                     0.0, 0.0, 0.4,          # base position
-        #                    -0.1, 0.1,-0.1, 0.1,     # ad/ab
-        #                     1.0, 1.0,-1.0,-1.0,     # hip
-        #                    -1.4,-1.4, 1.4, 1.4])    # knee
-
+        
         # Compute desired generalized forces
         q_err = self.plant.MapQDotToVelocity(self.context, q-q_nom)  # Need to use qd=N(q)*v here,
                                                                      # since q and v have different sizes
@@ -309,19 +295,17 @@ class BasicController(LeafSystem):
 
         # Use actuation matrix to map generalized forces to control inputs
         u = S@tau
-        u = np.clip(u,-100,100)
+        u = np.clip(u,-150,150)
 
         if self.use_lcm:
             # Send control outputs over LCM
             msg = robot_state_control_lcmt()
             msg.tau = (S.T@u)[-self.plant.num_actuators():]   # The mini cheetah controller assumes
-                                                             # control torques are in the same order as 
-                                                             # v, but drake uses a different (custom) mapping. 
+                                                              # control torques are in the same order as 
+                                                              # v, but drake uses a different (custom) mapping. 
             self.lc.publish("robot_control_input", msg.encode())
 
-            # just send zero control input to Drake.
-            # TODO: update simulator state to match LCM data
-            #output.SetFromVector(u)   
+            # We'll just send zero control inputs to the drake simulator
             output.SetFromVector(np.zeros(self.plant.num_actuators()))
         else:
             # Send control outputs to drake

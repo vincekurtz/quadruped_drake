@@ -6,12 +6,10 @@ from planners import BasicTrunkPlanner, TowrTrunkPlanner
 import os
 
 show_trunk_model = True
+use_lcm = False
 
 # Drake only loads things relative to the drake path, so we have to do some hacking
 # to load an arbitrary file
-#robot_description_path = "./models/anymal_b_simple_description/urdf/anymal_drake.urdf" # relative to this file
-#robot_description_path = "./models/anymal_b_simple_description/urdf/anymal_drake_no_collision.urdf" # relative to this file
-#robot_description_path = "./models/mini_cheetah/mini_cheetah_simple_v2.urdf"
 robot_description_path = "./models/mini_cheetah/mini_cheetah_mesh.urdf"
 drake_path = getDrakePath()
 robot_description_file = "drake/" + os.path.relpath(robot_description_path, start=drake_path)
@@ -43,8 +41,8 @@ plant.RegisterVisualGeometry(
         np.array([0.5,0.5,0.5,0.0]))    # Color set to be completely transparent
 
 # Turn off gravity
-g = plant.mutable_gravity_field()
-g.set_gravity_vector([0,0,0])
+#g = plant.mutable_gravity_field()
+#g.set_gravity_vector([0,0,0])
 
 plant.Finalize()
 assert plant.geometry_source_is_registered()
@@ -84,7 +82,7 @@ planner = builder.AddSystem(BasicTrunkPlanner(trunk_frame_ids))
 #planner = builder.AddSystem(TowrTrunkPlanner(trunk_frame_ids))
 #controller = builder.AddSystem(PassivityController(plant,dt))
 #controller = builder.AddSystem(QPController(plant,dt))
-controller = builder.AddSystem(BasicController(plant,dt,use_lcm=True))
+controller = builder.AddSystem(BasicController(plant,dt,use_lcm=use_lcm))
 
 # Set up the Scene Graph
 builder.Connect(
@@ -125,30 +123,26 @@ diagram_context = diagram.CreateDefaultContext()
 
 # Simulator setup
 simulator = Simulator(diagram, diagram_context)
-simulator.set_target_realtime_rate(1.0)
-simulator.set_publish_every_time_step(False)
+if use_lcm:
+    # If we're using LCM to send messages to another simulator or a real
+    # robot, we don't want Drake to slow things down, so we'll publish
+    # new messages as fast as possible
+    simulator.set_target_realtime_rate(0.0)
+else:
+    simulator.set_target_realtime_rate(1.0)
 
 # Set initial states
 plant_context = diagram.GetMutableSubsystemContext(plant, diagram_context)
 q0 = np.asarray([ 1.0, 0.0, 0.0, 0.0,     # base orientation
-                  0.0, 0.0, 0.5,          # base position
+                  0.0, 0.0, 0.3,          # base position
                   0.0, 0.0, 0.0, 0.0,     # ad/ab
-                  0.0, 0.0, 0.0, 0.0,     # hip
-                  0.0, 0.0, 0.0, 0.0])    # knee
-#q0 = np.asarray([ 1.0, 0.0, 0.0, 0.0,     # base orientation
-#                  0.0, 0.0, 0.3,          # base position
-#                  0.0, 0.0, 0.0, 0.0,     # ad/ab
-#                 -0.8,-0.8,-0.8,-0.8,     # hip
-#                  1.6, 1.6, 1.6, 1.6])    # knee
-#q0 = np.asarray([ 1.0, 0.0, 0.0, 0.0,     # base orientation
-#                  0.0, 0.0, 0.4,          # base position
-#                 -0.1, 0.1,-0.1, 0.1,     # ad/ab
-#                  1.0, 1.0,-1.0,-1.0,     # hip
-#                 -1.4,-1.4, 1.4, 1.4])    # knee
+                 -0.8,-0.8,-0.8,-0.8,     # hip
+                  1.6, 1.6, 1.6, 1.6])    # knee
 qd0 = np.zeros(plant.num_velocities())
 plant.SetPositions(plant_context,q0)
 plant.SetVelocities(plant_context,qd0)
 
+# Run the simulation!
 simulator.AdvanceTo(6.0)
 
 # Plot stuff

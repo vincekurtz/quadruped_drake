@@ -6,7 +6,7 @@ from planners import BasicTrunkPlanner, TowrTrunkPlanner
 import os
 
 show_trunk_model = True
-use_lcm = False
+use_lcm = True
 
 # Drake only loads things relative to the drake path, so we have to do some hacking
 # to load an arbitrary file
@@ -81,8 +81,8 @@ for foot in ["lf","rf","lh","rh"]:
 planner = builder.AddSystem(BasicTrunkPlanner(trunk_frame_ids))
 #planner = builder.AddSystem(TowrTrunkPlanner(trunk_frame_ids))
 #controller = builder.AddSystem(PassivityController(plant,dt))
-#controller = builder.AddSystem(QPController(plant,dt))
-controller = builder.AddSystem(BasicController(plant,dt,use_lcm=use_lcm))
+controller = builder.AddSystem(QPController(plant,dt,use_lcm=use_lcm))
+#controller = builder.AddSystem(BasicController(plant,dt,use_lcm=use_lcm))
 
 # Set up the Scene Graph
 builder.Connect(
@@ -96,7 +96,7 @@ builder.Connect(
         scene_graph.get_source_pose_port(trunk_source))
 
 # Connect the trunk-model planner to the controller
-#builder.Connect(planner.GetOutputPort("trunk_trajectory"), controller.get_input_port(1))
+builder.Connect(planner.GetOutputPort("trunk_trajectory"), controller.get_input_port(1))
 
 # Connect the controller to the simulated plant
 builder.Connect(controller.GetOutputPort("quad_torques"),

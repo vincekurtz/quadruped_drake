@@ -7,8 +7,8 @@ class QPController(BasicController):
     and base frame orientation and solves a standard QP to compute
     corresponding joint torques. 
     """
-    def __init__(self, plant, dt):
-        BasicController.__init__(self, plant, dt)
+    def __init__(self, plant, dt, use_lcm=False):
+        BasicController.__init__(self, plant, dt, use_lcm=use_lcm)
 
         # inputs from the trunk model are sent in a dictionary
         self.DeclareAbstractInputPort(
@@ -99,13 +99,8 @@ class QPController(BasicController):
 
             constraint = self.AddJacobianTypeConstraint(J_c[j], vd, Jdv_c[j], pdd_des)
 
-    def DoSetControlTorques(self, context, output):
-        self.UpdateStoredContext(context)
-        q = self.plant.GetPositions(self.context)
-        v = self.plant.GetVelocities(self.context)
-
+    def ControlLaw(self, context, q, v):
         ######### Tuning Parameters #########
-
         Kp_body_p = 100.0
         Kd_body_p = 20.0
 
@@ -117,7 +112,6 @@ class QPController(BasicController):
 
         w_body = 100.0
         w_foot = 10.0
-
         #####################################
 
         # Compute Dynamics Quantities
@@ -215,5 +209,5 @@ class QPController(BasicController):
         result = self.solver.Solve(self.mp)
         assert result.is_success()
         tau = result.GetSolution(tau)
-
-        output.SetFromVector(tau)
+    
+        return tau

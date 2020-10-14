@@ -258,7 +258,8 @@ class BasicController(LeafSystem):
 
     def DoSetControlTorques(self, context, output):
         """
-        This function gets called at every timestep and sets output torques. 
+        This function gets called at every timestep and sends output torques to 
+        the simulator (and/or over LCM, if needed).
         """
         if self.use_lcm:
             # Get robot's current state (q,v) from LCM
@@ -273,9 +274,32 @@ class BasicController(LeafSystem):
             q = self.plant.GetPositions(self.context)
             v = self.plant.GetVelocities(self.context)
 
+        # Compute controls to apply
+        u = self.ControlLaw(context, q, v)
+
+        if self.use_lcm:
+            # Send control outputs over LCM
+            msg = robot_state_control_lcmt()
+            S = self.plant.MakeActuationMatrix().T
+            msg.tau = (S.T@u)[-self.plant.num_actuators():]   # The mini cheetah controller assumes
+                                                              # control torques are in the same order as 
+                                                              # v, but drake uses a different (custom) mapping. 
+            self.lc.publish("robot_control_input", msg.encode())
+
+            # We'll just send zero control inputs to the drake simulator
+            output.SetFromVector(np.zeros(self.plant.num_actuators()))
+        else:
+            # Send control outputs to drake
+            output.SetFromVector(u)
+
+    def ControlLaw(self, context, q, v):
+        """
+        This function is called by DoSetControlTorques, and consists of the main control 
+        code for the robot. 
+        """
         # Some dynamics computations
         M, C, tau_g, S = self.CalcDynamics()
-
+        
         # Tuning parameters
         Kp = 50.0*np.eye(self.plant.num_velocities())
         Kd = 2.0*np.eye(self.plant.num_velocities())
@@ -297,16 +321,4 @@ class BasicController(LeafSystem):
         u = S@tau
         u = np.clip(u,-150,150)
 
-        if self.use_lcm:
-            # Send control outputs over LCM
-            msg = robot_state_control_lcmt()
-            msg.tau = (S.T@u)[-self.plant.num_actuators():]   # The mini cheetah controller assumes
-                                                              # control torques are in the same order as 
-                                                              # v, but drake uses a different (custom) mapping. 
-            self.lc.publish("robot_control_input", msg.encode())
-
-            # We'll just send zero control inputs to the drake simulator
-            output.SetFromVector(np.zeros(self.plant.num_actuators()))
-        else:
-            # Send control outputs to drake
-            output.SetFromVector(u)
+        return u

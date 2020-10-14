@@ -274,15 +274,9 @@ class BasicController(LeafSystem):
             q = self.plant.GetPositions(self.context)
             v = self.plant.GetVelocities(self.context)
 
-        # DEBUG
-        q_nom = self.q
-        self.UpdateStoredContext(context)
-        q = self.plant.GetPositions(self.context)
-        v = self.plant.GetVelocities(self.context)
-        
         # Tuning parameters
-        Kp = 1.0*np.eye(self.plant.num_velocities())
-        Kd = 0.1*np.eye(self.plant.num_velocities())
+        Kp = 50.0*np.eye(self.plant.num_velocities())
+        Kd = 2.0*np.eye(self.plant.num_velocities())
 
         # Fun with dynamics
         M, Cv, tau_g, S = self.CalcDynamics()
@@ -296,11 +290,11 @@ class BasicController(LeafSystem):
         pose_body, J_body, Jdv_body = self.CalcFramePoseQuantities(self.body_frame)
 
         # Nominal joint angles
-        #q_nom = np.asarray([ 1.0, 0.0, 0.0, 0.0,     # base orientation
-        #                     0.0, 0.0, 0.3,          # base position
-        #                     0.0, 0.0, 0.0, 0.0,     # ad/ab
-        #                    -0.8,-0.8,-0.8,-0.8,     # hip
-        #                     1.6, 1.6, 1.6, 1.6])    # knee
+        q_nom = np.asarray([ 1.0, 0.0, 0.0, 0.0,     # base orientation
+                             0.0, 0.0, 0.3,          # base position
+                             0.0, 0.0, 0.0, 0.0,     # ad/ab
+                            -0.8,-0.8,-0.8,-0.8,     # hip
+                             1.6, 1.6, 1.6, 1.6])    # knee
         #q_nom = np.asarray([ 1.0, 0.0, 0.0, 0.0,     # base orientation
         #                     0.0, 0.0, 0.4,          # base position
         #                    -0.1, 0.1,-0.1, 0.1,     # ad/ab
@@ -320,12 +314,15 @@ class BasicController(LeafSystem):
         if self.use_lcm:
             # Send control outputs over LCM
             msg = robot_state_control_lcmt()
-            msg.tau = u
+            msg.tau = (S.T@u)[-self.plant.num_actuators():]   # The mini cheetah controller assumes
+                                                             # control torques are in the same order as 
+                                                             # v, but drake uses a different (custom) mapping. 
             self.lc.publish("robot_control_input", msg.encode())
 
             # just send zero control input to Drake.
             # TODO: update simulator state to match LCM data
-            output.SetFromVector(u)   
+            #output.SetFromVector(u)   
+            output.SetFromVector(np.zeros(self.plant.num_actuators()))
         else:
             # Send control outputs to drake
             output.SetFromVector(u)

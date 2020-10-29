@@ -7,8 +7,8 @@ class PassivityController(BasicController):
     feet, center-of-mass, and base frame orientation and computes
     corresponding joint torques. 
     """
-    def __init__(self, plant, dt):
-        BasicController.__init__(self, plant, dt)
+    def __init__(self, plant, dt, use_lcm=False):
+        BasicController.__init__(self, plant, dt, use_lcm=use_lcm)
 
         # inputs from the trunk model are sent in a dictionary
         self.DeclareAbstractInputPort(
@@ -163,11 +163,7 @@ class PassivityController(BasicController):
 
         return self.mp.AddLinearConstraint(A=A,lb=lb,ub=ub,vars=x)
 
-    def DoSetControlTorques(self, context, output):
-        self.UpdateStoredContext(context)
-        q = self.plant.GetPositions(self.context)
-        v = self.plant.GetVelocities(self.context)
-        
+    def ControlLaw(self, context, q, v):
         # Compute Dynamics Quantities
         M, Cv, tau_g, S = self.CalcDynamics()
         C = self.CalcCoriolisMatrix()
@@ -241,6 +237,7 @@ class PassivityController(BasicController):
             p_s_tilde = p_s - p_s_des
 
             J_s = np.vstack(J_feet[swing_feet])
+            Jdv_s = np.vstack(Jdv_feet[swing_feet])
             pd_s = J_s@v
             pd_s_des = np.hstack(pd_des_feet[swing_feet])
             v_s_tilde = pd_s - pd_s_des
@@ -250,11 +247,13 @@ class PassivityController(BasicController):
             p_s_tilde = np.zeros((0,))
             v_s_tilde = np.zeros((0,))
             J_s = np.zeros((0,self.plant.num_velocities()))
+            Jdv_s = np.zeros((0,))
             pd_s_des = np.zeros((0,))
             pdd_s_des = np.zeros((0,))
 
         # Compute p_tilde, v_tilde, qd_des, qdd_des for all output variables
         J = np.vstack([J_body, J_s])
+        Jdv = np.hstack([Jdv_body, Jdv_s])
         p_tilde = np.hstack([p_body_tilde, p_s_tilde])
         v_tilde = np.hstack([v_body_tilde, v_s_tilde])
         pd_des = np.hstack([pd_body_des, pd_s_des])
@@ -282,17 +281,17 @@ class PassivityController(BasicController):
         Kp_body = 500
         Kp_feet = 500
 
-        Kd_body = 200
+        Kd_body = 30
         Kd_feet = 30
         
         nf = 3*sum(swing_feet)   # there are 3 foot-related variables (x,y,z positions) for each swing foot
         Kp = np.block([[ Kp_body*np.eye(6),  np.zeros((6,nf))   ],
                        [  np.zeros((nf,6)),  Kp_feet*np.eye(nf) ]])
-        Kd = np.block([[ Kd_body*np.eye(6),  np.zeros((6,nf))   ],
-                       [  np.zeros((nf,6)),  Kd_feet*np.eye(nf) ]])
+        #Kd = np.block([[ Kd_body*np.eye(6),  np.zeros((6,nf))   ],
+        #               [  np.zeros((nf,6)),  Kd_feet*np.eye(nf) ]])
 
         # Compute tau_nom (interface)
-        tau_nom = M@qdd_des + C@qd_des + tau_g - J.T@(Kp@p_tilde + Kd@v_tilde)
+        #tau_nom = M@qdd_des + C@qd_des + tau_g - J.T@(Kp@p_tilde + Kd@v_tilde)
 
         # Set up the QP
         #   minimize:
@@ -313,10 +312,14 @@ class PassivityController(BasicController):
         # min || tau_nom - S'*tau + sum(J'*f) ||^2
         #self.AddGeneralizedForceCost(tau_nom, S, tau, J_c, f_c, weight=1.0)
 
+        # min || J*vd + Jd*v - pdd_nom ||^2
+        pdd_nom = -Kp@p_tilde# - Kd@v_tilde
+        self.AddJacobianTypeCost(J, vd, Jdv, pdd_nom, weight=1.0)
+
         # min w*|| tau ||^2
-        self.mp.AddQuadraticErrorCost(Q=0.01*np.eye(self.plant.num_actuators()),
-                                      x_desired = np.zeros(self.plant.num_actuators()),
-                                      vars=tau)
+        #self.mp.AddQuadraticErrorCost(Q=1.0*np.eye(self.plant.num_actuators()),
+        #                              x_desired = np.zeros(self.plant.num_actuators()),
+        #                              vars=tau)
 
         # min delta
         self.mp.AddCost(1.0*delta[0,0])
@@ -326,8 +329,7 @@ class PassivityController(BasicController):
                                 qdd_des, p_tilde, v_tilde, Kp, C)
 
         # s.t. delta <= gamma(\|u_2\|_inf)
-        #vdot_max = 0.0*trunk_data["u2_max"]
-        vdot_max = -v_tilde.T@Kd@v_tilde
+        vdot_max = 0
         vdot_min = -np.inf
         self.mp.AddLinearConstraint(A=np.eye(1),lb=vdot_min*np.eye(1),ub=vdot_max*np.eye(1),vars=delta)
 
@@ -349,12 +351,14 @@ class PassivityController(BasicController):
         result = self.solver.Solve(self.mp)
         assert result.is_success()
         tau = result.GetSolution(tau)
-        output.SetFromVector(tau)
         
-        # Fallback PD controller
-        #BasicController.DoSetControlTorques(self, context, output)  
-
         # Set quantities for logging
         self.V = 0.5*qd_tilde.T@M@qd_tilde + p_tilde.T@Kp@p_tilde 
         self.V *= 1/np.min(np.linalg.eigvals(Kp))      # scale by minimum eigenvalue of Kp
         self.err = p_tilde.T@p_tilde
+
+        return tau
+        
+        # DEBUG: Fallback PD controller
+        #return BasicController.ControlLaw(self, context, q, v)
+

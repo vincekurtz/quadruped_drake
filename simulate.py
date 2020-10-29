@@ -6,7 +6,7 @@ from planners import BasicTrunkPlanner, TowrTrunkPlanner
 import os
 
 show_trunk_model = True
-use_lcm = True
+use_lcm = False
 
 # Drake only loads things relative to the drake path, so we have to do some hacking
 # to load an arbitrary file
@@ -80,8 +80,9 @@ for foot in ["lf","rf","lh","rh"]:
 # Create high-level trunk-model planner and low-level whole-body controller
 planner = builder.AddSystem(BasicTrunkPlanner(trunk_frame_ids))
 #planner = builder.AddSystem(TowrTrunkPlanner(trunk_frame_ids))
-#controller = builder.AddSystem(PassivityController(plant,dt))
-controller = builder.AddSystem(QPController(plant,dt,use_lcm=use_lcm))
+
+controller = builder.AddSystem(PassivityController(plant,dt,use_lcm=use_lcm))
+#controller = builder.AddSystem(QPController(plant,dt,use_lcm=use_lcm))
 #controller = builder.AddSystem(BasicController(plant,dt,use_lcm=use_lcm))
 
 # Set up the Scene Graph

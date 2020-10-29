@@ -102,12 +102,12 @@ int main(int argc, char *argv[]) {
 
     // Set up the NLP
     NlpFormulation formulation;
-
+    
     // terrain
     formulation.terrain_ = std::make_shared<FlatGround>(0.0);
-
+    
     // Kinematic limits and dynamic parameters
-    formulation.model_ = RobotModel(RobotModel::Anymal);   // TODO: use mini cheetah
+    formulation.model_ = RobotModel(RobotModel::Anymal);
 
     // initial position
     auto nominal_stance_B = formulation.model_.kinematic_model_->GetNominalStanceInBase(); 
@@ -117,9 +117,10 @@ int main(int argc, char *argv[]) {
             [&](Eigen::Vector3d& p){ p.z() = z_ground; } // feet at 0 height
     );
     formulation.initial_base_.lin.at(kPos).z() = - nominal_stance_B.front().z() + z_ground;
+    
 
     // desired goal state
-    formulation.final_base_.lin.at(towr::kPos) << dist_x, dist_y, 0.42;
+    formulation.final_base_.lin.at(towr::kPos) << dist_x, dist_y, 0.2;
 
     // Total duration of the movement
     double total_duration = 5.0;

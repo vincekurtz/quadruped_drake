@@ -1,5 +1,6 @@
 from planners.simple import *
 import subprocess as sub
+import os
 
 import lcm
 from lcm_types.trunklcm import trunk_state_t
@@ -53,7 +54,10 @@ class TowrTrunkPlanner(BasicTrunkPlanner):
         """
         # Run the trajectory optimization (TOWR)
         # syntax is trunk_mpc gait_type={walk,trot,pace,bound,gallop} optimize_gait={0,1} distance_x distance_y
-        sub.call(["build/trunk_mpc","walk","0","1.5", "0.0"])  
+        my_env = os.environ
+        my_env["LD_LIBRARY_PATH"] = ""   # need to set this so only the custom version of towr gets used, not
+                                         # the one in catkin_ws (if it exits)
+        sub.Popen(["build/towr/trunk_mpc","walk","0","1.5", "0.0"], env=my_env)  
 
         # Read the result over LCM
         self.traj_finished = False  # clear out any stored data

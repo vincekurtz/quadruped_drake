@@ -78,8 +78,8 @@ for foot in ["lf","rf","lh","rh"]:
     trunk_frame_ids[foot] = foot_frame.id()
 
 # Create high-level trunk-model planner and low-level whole-body controller
-planner = builder.AddSystem(BasicTrunkPlanner(trunk_frame_ids))
-#planner = builder.AddSystem(TowrTrunkPlanner(trunk_frame_ids))
+#planner = builder.AddSystem(BasicTrunkPlanner(trunk_frame_ids))
+planner = builder.AddSystem(TowrTrunkPlanner(trunk_frame_ids))
 
 controller = builder.AddSystem(PassivityController(plant,dt,use_lcm=use_lcm))
 #controller = builder.AddSystem(QPController(plant,dt,use_lcm=use_lcm))
@@ -147,15 +147,15 @@ plant.SetVelocities(plant_context,qd0)
 simulator.AdvanceTo(6.0)
 
 # Plot stuff
-#t = logger.sample_times()
-#V = logger.data()[0,:]
-#err = logger.data()[1,:]
-#
-#plt.figure()
-#plt.plot(t, V, linewidth='2', label='Simulation Function')
-#plt.plot(t, err, linewidth='2', label='Output Error')
-#plt.legend()
-#plt.xlabel("time (s)")
+t = logger.sample_times()[10:]
+V = logger.data()[0,10:]
+err = logger.data()[1,10:]
+
+plt.figure()
+plt.plot(t, V, linewidth='2', label='Storage Function')
+plt.plot(t, err, linewidth='2', label='Output Error')
+plt.legend()
+plt.xlabel("time (s)")
 #plt.ylim((-0.001,0.01))
-#
-#plt.show()
+
+plt.show()

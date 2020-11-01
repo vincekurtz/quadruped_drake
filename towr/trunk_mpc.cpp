@@ -10,7 +10,7 @@
 #include <Eigen/Dense>
 
 #include <lcm/lcm-cpp.hpp>
-#include "lcm_types/trunklcm/trunk_state_t.hpp"
+#include "../lcm_types/trunklcm/trunk_state_t.hpp"
 
 
 using namespace towr;
@@ -107,7 +107,7 @@ int main(int argc, char *argv[]) {
     formulation.terrain_ = std::make_shared<FlatGround>(0.0);
     
     // Kinematic limits and dynamic parameters
-    formulation.model_ = RobotModel(RobotModel::Anymal);
+    formulation.model_ = RobotModel(RobotModel::MiniCheetah);
 
     // initial position
     auto nominal_stance_B = formulation.model_.kinematic_model_->GetNominalStanceInBase(); 

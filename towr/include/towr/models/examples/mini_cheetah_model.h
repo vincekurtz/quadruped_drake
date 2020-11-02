@@ -62,8 +62,8 @@ public:
 class MiniCheetahDynamicModel : public SingleRigidBodyDynamics {
 public:
   MiniCheetahDynamicModel()
-  : SingleRigidBodyDynamics(9.0,
-                    0.112, 0.36, 0.428, 0.0, 0.0, 0.0,
+  : SingleRigidBodyDynamics(3.3,
+                    0.011253, 0.036203, 0.042673, 0.0, 0.0, 0.0,
                     4) {}
 };
 

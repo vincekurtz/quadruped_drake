@@ -150,6 +150,8 @@ public:
    *  problem.
    */
   enum CostName       { ForcesCostID,    ///< sets NodeCost on force nodes
+                        RotationVelCostID,
+                        RotationAccCostID,
                         EEMotionCostID   ///< sets NodeCost on endeffector velocity
   };
 

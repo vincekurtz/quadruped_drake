@@ -126,6 +126,8 @@ private:
   // costs
   CostPtrVec GetCost(const Parameters::CostName& id, double weight) const;
   CostPtrVec MakeForcesCost(double weight) const;
+  CostPtrVec MakeRotationVelCost(double weight) const;
+  CostPtrVec MakeRotationAccCost(double weight) const;
   CostPtrVec MakeEEMotionCost(double weight) const;
 };
 

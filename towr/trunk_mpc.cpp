@@ -140,6 +140,9 @@ int main(int argc, char *argv[]) {
         formulation.params_.OptimizePhaseDurations();
     }
 
+    // Add weighted cost on rotational velocity of base
+    formulation.params_.costs_.push_back({Parameters::CostName(1),1.0});
+
     // Initialize the nonlinear-programming problem with the variables,
     // constraints and costs.
     ifopt::Problem nlp;

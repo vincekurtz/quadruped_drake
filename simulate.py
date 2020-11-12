@@ -17,7 +17,7 @@ robot_description_file = "drake/" + os.path.relpath(robot_description_path, star
 robot_urdf  = FindResourceOrThrow(robot_description_file)
 builder = DiagramBuilder()
 scene_graph = builder.AddSystem(SceneGraph())
-dt = 4e-3
+dt = 1e-3
 plant = builder.AddSystem(MultibodyPlant(time_step=dt))
 plant.RegisterAsSourceForSceneGraph(scene_graph) 
 quad = Parser(plant=plant).AddModelFromFile(robot_urdf,"quad")
@@ -81,8 +81,8 @@ for foot in ["lf","rf","lh","rh"]:
 #planner = builder.AddSystem(BasicTrunkPlanner(trunk_frame_ids))
 planner = builder.AddSystem(TowrTrunkPlanner(trunk_frame_ids))
 
-controller = builder.AddSystem(PassivityController(plant,dt,use_lcm=use_lcm))
-#controller = builder.AddSystem(QPController(plant,dt,use_lcm=use_lcm))
+#controller = builder.AddSystem(PassivityController(plant,dt,use_lcm=use_lcm))
+controller = builder.AddSystem(QPController(plant,dt,use_lcm=use_lcm))
 #controller = builder.AddSystem(BasicController(plant,dt,use_lcm=use_lcm))
 
 # Set up the Scene Graph
@@ -109,7 +109,7 @@ builder.Connect(plant.get_state_output_port(),
 logger = LogOutput(controller.GetOutputPort("output_metrics"),builder)
 
 # Set up the Visualizer
-ConnectDrakeVisualizer(builder=builder, scene_graph=scene_graph)
+DrakeVisualizer().AddToBuilder(builder, scene_graph)
 ConnectContactResultsToDrakeVisualizer(builder, plant)
 
 # Compile the diagram: no adding control blocks from here on out

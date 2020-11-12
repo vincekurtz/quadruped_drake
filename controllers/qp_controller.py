@@ -102,7 +102,7 @@ class QPController(BasicController):
     def ControlLaw(self, context, q, v):
         ######### Tuning Parameters #########
         Kp_body_p = 100.0
-        Kd_body_p = 20.0
+        Kd_body_p = 50.0
 
         Kp_body_rpy = Kp_body_p
         Kd_body_rpy = Kd_body_p
@@ -119,59 +119,69 @@ class QPController(BasicController):
 
         # Get setpoint data from the trunk model
         trunk_data = self.EvalAbstractInput(context,1).get_value()
+        
+        contact_feet = trunk_data["contact_states"]       # Note: it may be better to determine
+        swing_feet = [not foot for foot in contact_feet]  # contact states from the actual robot rather than
+        num_contact = sum(contact_feet)                   # the planned trunk trajectory.
+        num_swing = sum(swing_feet)
 
-        # Determine desired (spatial) acceleration for the body
+        p_body_nom = trunk_data["p_body"]
+        pd_body_nom = trunk_data["pd_body"]
+        pdd_body_nom = trunk_data["pdd_body"]
+
+        rpy_body_nom = trunk_data["rpy_body"]
+        rpyd_body_nom = trunk_data["rpyd_body"]
+        rpydd_body_nom = trunk_data["rpydd_body"]
+        
+        p_feet_nom = np.array([trunk_data["p_lf"],trunk_data["p_rf"],trunk_data["p_lh"],trunk_data["p_rh"]])
+        pd_feet_nom = np.array([trunk_data["pd_lf"],trunk_data["pd_rf"],trunk_data["pd_lh"],trunk_data["pd_rh"]])
+        pdd_feet_nom = np.array([trunk_data["pdd_lf"],trunk_data["pdd_rf"],trunk_data["pdd_lh"],trunk_data["pdd_rh"]])
+
+        p_s_nom = p_feet_nom[swing_feet]
+        pd_s_nom = pd_feet_nom[swing_feet]
+        pdd_s_nom = pdd_feet_nom[swing_feet]
+
+        # Get robot's actual task-space (body pose + foot positions) data
         X_body, J_body, Jdv_body = self.CalcFramePoseQuantities(self.body_frame)
 
         p_body = X_body.translation()
         pd_body = (J_body@v)[3:]
-        pdd_body_des = trunk_data["pdd_body"]  \
-                         - Kp_body_p*(p_body - trunk_data["p_body"]) \
-                         - Kd_body_p*(pd_body - trunk_data["pd_body"])
 
-        rpy_body = RollPitchYaw(X_body.rotation())
+        RPY_body = RollPitchYaw(X_body.rotation())  # RPY object helps convert between angular velocity and rpyd
+        rpy_body = RPY_body.vector()
         omega_body = (J_body@v)[:3]   # angular velocity of the body
-        rpyd_body = rpy_body.CalcRpyDtFromAngularVelocityInParent(omega_body)
+        rpyd_body = RPY_body.CalcRpyDtFromAngularVelocityInParent(omega_body)
 
-        rpydd_body_des = trunk_data["rpydd_body"] \
-                            - Kp_body_rpy*(rpy_body.vector() - trunk_data["rpy_body"]) \
-                            - Kd_body_rpy*(rpyd_body - trunk_data["rpyd_body"])
-
-        wd_body_des = rpy_body.CalcAngularVelocityInParentFromRpyDt(rpydd_body_des)
-
-        # Note current foot positions, Jacobians, etc
         p_lf, J_lf, Jdv_lf = self.CalcFramePositionQuantities(self.lf_foot_frame)
         p_rf, J_rf, Jdv_rf = self.CalcFramePositionQuantities(self.rf_foot_frame)
         p_lh, J_lh, Jdv_lh = self.CalcFramePositionQuantities(self.lh_foot_frame)
         p_rh, J_rh, Jdv_rh = self.CalcFramePositionQuantities(self.rh_foot_frame)
 
-        p_feet = np.array([p_lf, p_rf, p_lh, p_rh])
+        p_feet = np.array([p_lf, p_rf, p_lh, p_rh]).reshape(4,3)
         J_feet = np.array([J_lf, J_rf, J_lh, J_rh])
         Jdv_feet = np.array([Jdv_lf, Jdv_rf, Jdv_lh, Jdv_rh])
-
-        # Unpack desired positions, velocities, accelerations of feet
-        p_des_feet = np.array([trunk_data["p_lf"],trunk_data["p_rf"],trunk_data["p_lh"],trunk_data["p_rh"]])
-        pd_des_feet = np.array([trunk_data["pd_lf"],trunk_data["pd_rf"],trunk_data["pd_lh"],trunk_data["pd_rh"]])
-        pdd_des_feet = np.array([trunk_data["pdd_lf"],trunk_data["pdd_rf"],trunk_data["pdd_lh"],trunk_data["pdd_rh"]])
-
-        # Note which feet are in contact (_c) and which feet are in swing (_s)
-        contact_feet = trunk_data["contact_states"]
-        swing_feet = [not foot for foot in contact_feet]
-        num_contact = sum(contact_feet)
-        num_swing = sum(swing_feet)
-
-        p_c = p_feet[contact_feet]
-        J_c = J_feet[contact_feet]
-        Jdv_c = Jdv_feet[contact_feet]
+        pd_feet = J_feet@v
 
         p_s = p_feet[swing_feet]
+        pd_s = pd_feet[swing_feet]
+
+        J_c = J_feet[contact_feet]
         J_s = J_feet[swing_feet]
+        Jdv_c = Jdv_feet[contact_feet]
         Jdv_s = Jdv_feet[swing_feet]
 
-        # Set desired accelerations for swing feet
-        pdd_s_des = pdd_des_feet[swing_feet] \
-                        - Kp_foot* (p_s.reshape(num_swing,3) - p_des_feet[swing_feet]) \
-                        - Kd_foot* (J_s@v - pd_des_feet[swing_feet])
+        # Set desired task-space accelerations
+        pdd_body_des = pdd_body_nom - Kp_body_p*(p_body - p_body_nom) \
+                                    - Kd_body_p*(pd_body - pd_body_nom)
+
+        rpydd_body_des = rpydd_body_nom - Kp_body_rpy*(rpy_body - rpy_body_nom) \
+                                        - Kd_body_rpy*(rpyd_body - rpyd_body_nom)
+        omegad_body_des = RPY_body.CalcAngularVelocityInParentFromRpyDt(rpydd_body_des)
+        
+        vd_body_des = np.hstack([omegad_body_des,pdd_body_des])   # desired spatial acceleration of the body
+
+        pdd_s_des = pdd_s_nom  - Kp_foot*(p_s - p_s_nom) \
+                               - Kd_foot*(pd_s - pd_s_nom)
 
         # Set up the QP
         #   minimize:
@@ -189,7 +199,6 @@ class QPController(BasicController):
         f_c = [self.mp.NewContinuousVariables(3,1,'f_%s'%j) for j in range(num_contact)]
 
         # min || J_body*vd + Jd_body*v - pdd_body_des \|^2
-        vd_body_des = np.hstack([wd_body_des,pdd_body_des])   # desired spatial acceleration of the body
         self.AddJacobianTypeCost(J_body, vd, Jdv_body, vd_body_des, weight=w_body)
 
         # min || J_s*vd+ Jd_s*v - pdd_s_des ||^2

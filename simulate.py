@@ -17,7 +17,7 @@ robot_description_file = "drake/" + os.path.relpath(robot_description_path, star
 robot_urdf  = FindResourceOrThrow(robot_description_file)
 builder = DiagramBuilder()
 scene_graph = builder.AddSystem(SceneGraph())
-dt = 1e-3
+dt = 5e-3
 plant = builder.AddSystem(MultibodyPlant(time_step=dt))
 plant.RegisterAsSourceForSceneGraph(scene_graph) 
 quad = Parser(plant=plant).AddModelFromFile(robot_urdf,"quad")
@@ -25,8 +25,8 @@ quad = Parser(plant=plant).AddModelFromFile(robot_urdf,"quad")
 # Add a flat ground with friction
 X_BG = RigidTransform()
 surface_friction = CoulombFriction(
-        static_friction = 1.1,
-        dynamic_friction = 1.1)
+        static_friction = 1.0,
+        dynamic_friction = 1.0)
 plant.RegisterCollisionGeometry(
         plant.world_body(),      # the body for which this object is registered
         X_BG,                    # The fixed pose of the geometry frame G in the body frame B
@@ -81,8 +81,8 @@ for foot in ["lf","rf","lh","rh"]:
 #planner = builder.AddSystem(BasicTrunkPlanner(trunk_frame_ids))
 planner = builder.AddSystem(TowrTrunkPlanner(trunk_frame_ids))
 
-#controller = builder.AddSystem(PassivityController(plant,dt,use_lcm=use_lcm))
-controller = builder.AddSystem(QPController(plant,dt,use_lcm=use_lcm))
+controller = builder.AddSystem(PassivityController(plant,dt,use_lcm=use_lcm))
+#controller = builder.AddSystem(QPController(plant,dt,use_lcm=use_lcm))
 #controller = builder.AddSystem(BasicController(plant,dt,use_lcm=use_lcm))
 
 # Set up the Scene Graph
@@ -152,10 +152,13 @@ V = logger.data()[0,10:]
 err = logger.data()[1,10:]
 
 plt.figure()
+plt.subplot(2,1,1)
 plt.plot(t, V, linewidth='2', label='Storage Function')
+plt.ylabel("Storage Function")
+
+plt.subplot(2,1,2)
 plt.plot(t, err, linewidth='2', label='Output Error')
-plt.legend()
+plt.ylabel("Output Error")
 plt.xlabel("time (s)")
-#plt.ylim((-0.001,0.01))
 
 plt.show()

@@ -44,7 +44,7 @@ public:
   MiniCheetahKinematicModel () : KinematicModel(4)
   {
     const double x_nominal_b = 0.2;
-    const double y_nominal_b = 0.1;
+    const double y_nominal_b = 0.11;
     const double z_nominal_b = -0.30;
 
     nominal_stance_.at(LF) <<  x_nominal_b,   y_nominal_b, z_nominal_b;
@@ -52,7 +52,7 @@ public:
     nominal_stance_.at(LH) << -x_nominal_b,   y_nominal_b, z_nominal_b;
     nominal_stance_.at(RH) << -x_nominal_b,  -y_nominal_b, z_nominal_b;
 
-    max_dev_from_nominal_ << 0.15, 0.07, 0.07;
+    max_dev_from_nominal_ << 0.17, 0.08, 0.08;
   }
 };
 
@@ -62,8 +62,8 @@ public:
 class MiniCheetahDynamicModel : public SingleRigidBodyDynamics {
 public:
   MiniCheetahDynamicModel()
-  : SingleRigidBodyDynamics(3.3,
-                    0.011253, 0.036203, 0.042673, 0.0, 0.0, 0.0,
+  : SingleRigidBodyDynamics(9.0,
+                    0.01253*4, 0.036203*4, 0.042673*4, 0.0, 0.0, 0.0, // scale body interias from udf to account for legs+rotors
                     4) {}
 };
 

@@ -101,7 +101,7 @@ class QPController(BasicController):
 
     def ControlLaw(self, context, q, v):
         ######### Tuning Parameters #########
-        Kp_body_p = 100.0
+        Kp_body_p = 500.0
         Kd_body_p = 50.0
 
         Kp_body_rpy = Kp_body_p
@@ -110,8 +110,8 @@ class QPController(BasicController):
         Kp_foot = 100.0
         Kd_foot = 20.0
 
-        w_body = 100.0
-        w_foot = 10.0
+        w_body = 10.0
+        w_foot = 1.0
         #####################################
 
         # Compute Dynamics Quantities
@@ -218,5 +218,11 @@ class QPController(BasicController):
         result = self.solver.Solve(self.mp)
         assert result.is_success()
         tau = result.GetSolution(tau)
+
+        # Set error for logging
+        p_tilde = np.hstack([rpy_body - rpy_body_nom,
+                             p_body - p_body_nom,
+                             p_s.flatten() - p_s_nom.flatten()])
+        self.err = p_tilde.T@p_tilde
     
         return tau

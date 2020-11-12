@@ -141,7 +141,7 @@ int main(int argc, char *argv[]) {
     }
 
     // Add weighted cost on rotational velocity of base
-    formulation.params_.costs_.push_back({Parameters::CostName(1),1.0});
+    //formulation.params_.costs_.push_back({Parameters::CostName(1),1.0});
 
     // Initialize the nonlinear-programming problem with the variables,
     // constraints and costs.

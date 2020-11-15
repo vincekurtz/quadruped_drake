@@ -301,8 +301,8 @@ class BasicController(LeafSystem):
         M, C, tau_g, S = self.CalcDynamics()
         
         # Tuning parameters
-        Kp = 50.0*np.eye(self.plant.num_velocities())
-        Kd = 2.0*np.eye(self.plant.num_velocities())
+        Kp = 30.0*np.eye(self.plant.num_velocities())
+        Kd = 1.5*np.eye(self.plant.num_velocities())
 
         # Nominal joint angles
         q_nom = np.asarray([ 1.0, 0.0, 0.0, 0.0,     # base orientation

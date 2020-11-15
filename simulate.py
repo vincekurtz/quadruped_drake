@@ -1,12 +1,25 @@
 #!/usr/bin/env python
 
 from pydrake.all import *
-from controllers import PassivityController, QPController, BasicController
+from controllers import PassivityController, InverseDynamicsController, BasicController
 from planners import BasicTrunkPlanner, TowrTrunkPlanner
 import os
+import sys
 
+############### Common Parameters ###################
 show_trunk_model = True
 use_lcm = False
+
+planning_method = "towr"       # "towr" or "basic"
+control_method = "ID"   # P = Passivity, ID = Inverse Dynamics, B = Basic, 
+
+sim_time = 6.0
+dt = 5e-3
+
+show_diagram = False
+make_plots = True
+
+#####################################################
 
 # Drake only loads things relative to the drake path, so we have to do some hacking
 # to load an arbitrary file
@@ -17,7 +30,6 @@ robot_description_file = "drake/" + os.path.relpath(robot_description_path, star
 robot_urdf  = FindResourceOrThrow(robot_description_file)
 builder = DiagramBuilder()
 scene_graph = builder.AddSystem(SceneGraph())
-dt = 5e-3
 plant = builder.AddSystem(MultibodyPlant(time_step=dt))
 plant.RegisterAsSourceForSceneGraph(scene_graph) 
 quad = Parser(plant=plant).AddModelFromFile(robot_urdf,"quad")
@@ -78,12 +90,23 @@ for foot in ["lf","rf","lh","rh"]:
     trunk_frame_ids[foot] = foot_frame.id()
 
 # Create high-level trunk-model planner and low-level whole-body controller
-#planner = builder.AddSystem(BasicTrunkPlanner(trunk_frame_ids))
-planner = builder.AddSystem(TowrTrunkPlanner(trunk_frame_ids))
+if planning_method == "basic":
+    planner = builder.AddSystem(BasicTrunkPlanner(trunk_frame_ids))
+elif planning_method == "towr":
+    planner = builder.AddSystem(TowrTrunkPlanner(trunk_frame_ids))
+else:
+    print("Invalid planning method %s" % planning_method)
+    sys.exit(1)
 
-controller = builder.AddSystem(PassivityController(plant,dt,use_lcm=use_lcm))
-#controller = builder.AddSystem(QPController(plant,dt,use_lcm=use_lcm))
-#controller = builder.AddSystem(BasicController(plant,dt,use_lcm=use_lcm))
+if control_method == "B":
+    controller = builder.AddSystem(BasicController(plant,dt,use_lcm=use_lcm))
+elif control_method == "ID":
+    controller = builder.AddSystem(InverseDynamicsController(plant,dt,use_lcm=use_lcm))
+elif control_method == "P":
+    controller = builder.AddSystem(PassivityController(plant,dt,use_lcm=use_lcm))
+else:
+    print("Invalid control method %s" % control_method)
+    sys.exit(1)
 
 # Set up the Scene Graph
 builder.Connect(
@@ -97,7 +120,8 @@ builder.Connect(
         scene_graph.get_source_pose_port(trunk_source))
 
 # Connect the trunk-model planner to the controller
-builder.Connect(planner.GetOutputPort("trunk_trajectory"), controller.get_input_port(1))
+if not control_method == "B":
+    builder.Connect(planner.GetOutputPort("trunk_trajectory"), controller.get_input_port(1))
 
 # Connect the controller to the simulated plant
 builder.Connect(controller.GetOutputPort("quad_torques"),
@@ -118,9 +142,10 @@ diagram.set_name("diagram")
 diagram_context = diagram.CreateDefaultContext()
 
 # Visualize the diagram
-#plt.figure()
-#plot_system_graphviz(diagram,max_depth=2)
-#plt.show()
+if show_diagram:
+    plt.figure()
+    plot_system_graphviz(diagram,max_depth=2)
+    plt.show()
 
 # Simulator setup
 simulator = Simulator(diagram, diagram_context)
@@ -144,21 +169,22 @@ plant.SetPositions(plant_context,q0)
 plant.SetVelocities(plant_context,qd0)
 
 # Run the simulation!
-simulator.AdvanceTo(6.0)
+simulator.AdvanceTo(sim_time)
 
-# Plot stuff
-t = logger.sample_times()[10:]
-V = logger.data()[0,10:]
-err = logger.data()[1,10:]
+if make_plots:
+    # Plot stuff
+    t = logger.sample_times()[10:]
+    V = logger.data()[0,10:]
+    err = logger.data()[1,10:]
 
-plt.figure()
-plt.subplot(2,1,1)
-plt.plot(t, V, linewidth='2', label='Storage Function')
-plt.ylabel("Storage Function")
+    plt.figure()
+    plt.subplot(2,1,1)
+    plt.plot(t, V, linewidth='2', label='Storage Function')
+    plt.ylabel("Storage Function")
 
-plt.subplot(2,1,2)
-plt.plot(t, err, linewidth='2', label='Output Error')
-plt.ylabel("Output Error")
-plt.xlabel("time (s)")
+    plt.subplot(2,1,2)
+    plt.plot(t, err, linewidth='2', label='Output Error')
+    plt.ylabel("Output Error")
+    plt.xlabel("time (s)")
 
-plt.show()
+    plt.show()

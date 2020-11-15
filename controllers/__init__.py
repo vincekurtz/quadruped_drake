@@ -1,3 +1,3 @@
 from controllers.basic_controller import BasicController
-from controllers.qp_controller import QPController
+from controllers.inverse_dynamics_controller import InverseDynamicsController
 from controllers.passivity_controller import PassivityController

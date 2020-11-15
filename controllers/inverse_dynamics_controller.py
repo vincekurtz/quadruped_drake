@@ -1,6 +1,6 @@
 from controllers.basic_controller import *
 
-class QPController(BasicController):
+class InverseDynamicsController(BasicController):
     """
     A standard QP-based controller. Takes as input desired
     positions/velocities/accelerations of the feet, center-of-mass,

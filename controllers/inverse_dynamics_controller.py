@@ -91,7 +91,7 @@ class IDController(BasicController):
 
             J_c[j]*vd + Jdv_c[j] == -Kd*J_c[j]*v
         """
-        Kd = 150*np.eye(3)
+        Kd = 100*np.eye(3)
 
         num_contacts = len(J_c)
         for j in range(num_contacts):

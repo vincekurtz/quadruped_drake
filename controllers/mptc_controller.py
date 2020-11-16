@@ -113,7 +113,7 @@ class MPTCController(BasicController):
 
             J_c[j]*vd + Jdv_c[j] == -Kd*J_c[j]*v
         """
-        Kd = 10*np.eye(3)
+        Kd = 100*np.eye(3)
 
         num_contacts = len(J_c)
         for j in range(num_contacts):
@@ -147,7 +147,7 @@ class MPTCController(BasicController):
         Kd_body_rpy = Kd_body_p
 
         Kp_foot = 200.0
-        Kd_foot = 20.0
+        Kd_foot = 10.0
 
         w_body = 10.0
         w_foot = 1.0

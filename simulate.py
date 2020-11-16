@@ -14,7 +14,7 @@ planning_method = "towr"       # "towr" or "basic"
 control_method = "MPTC"   # MPTC = Standard Passivity, ID = Inverse Dynamics, B = Basic PD, 
 
 sim_time = 6.0
-dt = 1e-3
+dt = 5e-3
 target_realtime_rate = 1.0
 
 show_diagram = False

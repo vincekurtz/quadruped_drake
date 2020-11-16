@@ -290,12 +290,13 @@ class MPTCController(BasicController):
             # s.t. J_cj*vd + Jd_cj*v == 0 (+ some daming)
             self.AddContactConstraint(J_c, vd, Jdv_c, v)
 
-        # Set quantities for logging
-        self.V = 0.5*xd_tilde.T@Lambda@xd_tilde + 0.5*x_tilde.T@Kp@x_tilde 
-        self.err = x_tilde.T@x_tilde
-
         result = self.solver.Solve(self.mp)
         assert result.is_success()
         tau = result.GetSolution(tau)
+
+        # Set quantities for logging
+        self.V = 0.5*xd_tilde.T@Lambda@xd_tilde + 0.5*x_tilde.T@Kp@x_tilde 
+        self.err = x_tilde.T@x_tilde
+        self.res = result.get_solver_details().primal_res
 
         return tau

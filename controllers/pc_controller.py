@@ -1,43 +1,22 @@
-from controllers.basic_controller import *
+from controllers.mptc_controller import *
 
-class MPTCController(BasicController):
+class PCController(MPTCController):
     """
-    A task-space passivity-based whole-body controller, via 
-    http://www.roboticsproceedings.org/rss16/p077.pdf.
+    A task-space passivity-based whole-body controller with passivity
+    constraints. 
 
     Takes as input desired positions/velocities/accelerations of the 
     feet and floating base and computes corresponding joint torques. 
     """
     def __init__(self, plant, dt, use_lcm=False):
-        BasicController.__init__(self, plant, dt, use_lcm=use_lcm)
+        MPTCController.__init__(self, plant, dt, use_lcm=use_lcm)
 
-        # inputs from the trunk model are sent in a dictionary
-        self.DeclareAbstractInputPort(
-                "trunk_input",
-                AbstractValue.Make({}))  
-
-        # Set the friction coefficient
-        self.mu = 0.7
-
-        # Choose a solver
-        #self.solver = GurobiSolver()
-        self.solver = OsqpSolver()
-
-        # Storage function for numerically computing Jbar
-        self.last_Jbar = None
-        self.last_contact_feet = None
-
-    def AddTaskForceCost(self, Jbar, f_des, S, tau, J_c, f_c, W):
+    def AddVdotConstraint(self, Jbar, S, J_c, tau, f_c, tau_g, Lambda, \
+                          Q, v, Kp, xdd_nom, xd_tilde, x_tilde, delta):
         """
-        Add a quadratic cost of the form
+        Add a constraint Vdot <= delta to the whole-body QP, where
 
-            1/2 * (f - f_des)' * W * (f - f_des)
-
-        to the whole-body QP, where
-
-            f = Jbar'(S'tau + J_c'f_c) are task-space forces
-            f_nom are nominal task-space forces
-            W >= 0 is a weighting matrix
+        Vdot = xd_tilde'*(f_task - f_g + Lambda*Q*(Jbar*xd_tilde - v) - Lambda*xdd_nom + Kp*x_tilde)
         """
         # Stack J_c, f_c 
         if len(f_c) > 0:
@@ -47,92 +26,34 @@ class MPTCController(BasicController):
             fc = np.zeros((0,1))
             Jc = np.zeros((0,self.plant.num_velocities()))
 
-        # Put in the form 1/2*x'*Q*x + c'*x for fast formulation
-        U = np.hstack([S.T,Jc.T])
-        x = np.vstack([tau, fc])
-        
-        Q = U.T@Jbar@W@Jbar.T@U
-        c = -f_des@W@Jbar.T@U
+        # Put in the form lb <= A*x <= ub
+        x = np.vstack([tau, fc, delta])
+        U = np.hstack([S.T, Jc.T])
 
-        return self.mp.AddQuadraticCost(Q, c, x)
+        A = np.hstack([xd_tilde.T@Jbar.T@U, -1])[np.newaxis]
+        ub = xd_tilde.T@(Jbar.T@tau_g - Lambda@Q@(Jbar@xd_tilde - v) + Lambda@xdd_nom - Kp@x_tilde)
+        lb = np.asarray(-np.inf)
 
-    def AddJacobianTypeConstraint(self, J, qdd, Jd_qd, xdd_des):
-        """
-        Add a linear constraint of the form
-            J*qdd + Jd_qd == xdd_des
-        to the whole-body controller QP.
-        """
-        A_eq = J     # A_eq*qdd == b_eq
-        b_eq = xdd_des-Jd_qd
-
-        return self.mp.AddLinearEqualityConstraint(A_eq, b_eq, qdd)
-
-    def AddDynamicsConstraint(self, M, qdd, C, tau_g, S, tau, J_c, f_c):
-        """
-        Add a dynamics constraint of the form
-            M*qdd + Cv + tau_g == S'*tau + sum(J_c[i]'*f_c[i])
-        to the whole-body controller QP.
-        """
-        # We'll rewrite the constraints in the form A_eq*x == b_eq for speed
-        A_eq = np.hstack([M, -S.T])
-        x = np.vstack([qdd,tau])
-
-        for j in range(len(J_c)):
-            A_eq = np.hstack([A_eq, -J_c[j].T])
-            x = np.vstack([x,f_c[j]])
-
-        b_eq = -C-tau_g
-
-        return self.mp.AddLinearEqualityConstraint(A_eq,b_eq,x)
-
-    def AddFrictionPyramidConstraint(self, f_c):
-        """
-        Add a friction pyramid constraint for the given set of contact forces
-        to the whole-body controller QP.
-        """
-        num_contacts = len(f_c)
-
-        A_i = np.asarray([[ 1, 0, -self.mu],   # pyramid approximation of CWC for one
-                          [-1, 0, -self.mu],   # contact force f \in R^3
-                          [ 0, 1, -self.mu],
-                          [ 0,-1, -self.mu]])
-
-        # We'll formulate as lb <= Ax <= ub, where x=[f_1',f_2',...]'
-        A = np.kron(np.eye(num_contacts),A_i)
-
-        ub = np.zeros((4*num_contacts,1))
-        lb = -np.inf*np.ones((4*num_contacts,1))
-
-        x = np.vstack([f_c[j] for j in range(num_contacts)])
+        ub = ub.reshape(1,1)
+        lb = lb.reshape(1,1)
 
         return self.mp.AddLinearConstraint(A=A,lb=lb,ub=ub,vars=x)
 
-    def AddContactConstraint(self, J_c, vd, Jdv_c, v):
-        """
-        Add contact constraints with velocity damping
-
-            J_c[j]*vd + Jdv_c[j] == -Kd*J_c[j]*v
-        """
-        Kd = 100*np.eye(3)
-
-        num_contacts = len(J_c)
-        for j in range(num_contacts):
-            pd = (J_c[j]@v).reshape(3,1)
-            pdd_des = -Kd@pd
-
-            constraint = self.AddJacobianTypeConstraint(J_c[j], vd, Jdv_c[j], pdd_des)
 
     def ControlLaw(self, context, q, v):
         """
-        A MPTC (Modular Passive Tracking Controller) whole-body QP-based controller.
+        A passivity-constrained whole-body QP-based controller.
 
            minimize:
                w_body* || f_body - f_body_des ||^2 +
                w_foot* || f_foot - f_foot_des ||^2 +
+               w_Vdot* delta
            subject to:
                 M*vd + Cv + tau_g = S'*tau + sum(J'*f)
                 f \in friction cones
                 J_cj*vd + Jd_cj*v == 0
+                Vdot <= delta
+                delta <= 0
 
         where desired task-space forces are given by 
 
@@ -151,6 +72,7 @@ class MPTCController(BasicController):
 
         w_body = 10.0
         w_foot = 1.0
+        w_Vdot = 0.0
         #####################################
        
         # Compute Dynamics Quantities
@@ -277,9 +199,13 @@ class MPTCController(BasicController):
         vd = self.mp.NewContinuousVariables(self.plant.num_velocities(), 1, 'vd')
         tau = self.mp.NewContinuousVariables(self.plant.num_actuators(), 1, 'tau')
         f_c = [self.mp.NewContinuousVariables(3,1,'f_%s'%j) for j in range(num_contact)]
+        delta = self.mp.NewContinuousVariables(1,'delta')
 
         # min 1/2*(f-f_des)'*W*(f-f_des)
         self.AddTaskForceCost(Jbar, f_des, S, tau, J_c, f_c, W)
+
+        # min w_Vdot*delta
+        self.mp.AddCost(w_Vdot*delta[0])
 
         # s.t.  M*vd + Cv + tau_g = S'*tau + sum(J_c[j]'*f_c[j])
         self.AddDynamicsConstraint(M, vd, Cv, tau_g, S, tau, J_c, f_c)
@@ -290,6 +216,16 @@ class MPTCController(BasicController):
 
             # s.t. J_cj*vd + Jd_cj*v == 0 (+ some daming)
             self.AddContactConstraint(J_c, vd, Jdv_c, v)
+    
+        # s.t. Vdot <= delta
+        self.AddVdotConstraint(Jbar, S, J_c, tau, f_c, tau_g, Lambda,
+                               Q, v, Kp, xdd_nom, xd_tilde, x_tilde, delta)
+
+        # s.t. delta <= 0
+        self.mp.AddLinearConstraint(A=np.eye(1),
+                                    lb=-np.inf*np.eye(1),
+                                    ub=0*np.eye(1),
+                                    vars=delta)
 
         result = self.solver.Solve(self.mp)
         assert result.is_success()

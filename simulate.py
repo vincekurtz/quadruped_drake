@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from pydrake.all import *
-from controllers import MPTCController, IDController, BasicController
+from controllers import *
 from planners import BasicTrunkPlanner, TowrTrunkPlanner
 import os
 import sys
@@ -10,8 +10,11 @@ import sys
 show_trunk_model = True
 use_lcm = False
 
-planning_method = "towr"       # "towr" or "basic"
-control_method = "MPTC"   # MPTC = Standard Passivity, ID = Inverse Dynamics, B = Basic PD, 
+planning_method = "towr"   # "towr" or "basic"
+control_method = "MPTC"      # ID = Inverse Dynamics (standard QP), 
+                           # B = Basic (simple joint-space PD), 
+                           # MPTC = task-space passivity
+                           # PC = passivity-constrained
 
 sim_time = 6.0
 dt = 5e-3
@@ -105,6 +108,8 @@ elif control_method == "ID":
     controller = builder.AddSystem(IDController(plant,dt,use_lcm=use_lcm))
 elif control_method == "MPTC":
     controller = builder.AddSystem(MPTCController(plant,dt,use_lcm=use_lcm))
+elif control_method == "PC":
+    controller = builder.AddSystem(PCController(plant,dt,use_lcm=use_lcm))
 else:
     print("Invalid control method %s" % control_method)
     sys.exit(1)
@@ -174,21 +179,27 @@ simulator.AdvanceTo(sim_time)
 
 if make_plots:
     # Plot stuff
-    t = logger.sample_times()
-    V = logger.data()[0,:]   
-    err = logger.data()[1,:]
-    res = logger.data()[2,:]
+    t = logger.sample_times()[10:]
+    V = logger.data()[0,10:]   
+    err = logger.data()[1,10:]
+    res = logger.data()[2,10:]
+    Vdot = logger.data()[3,10:]
 
     plt.figure()
-    plt.subplot(3,1,1)
+    plt.subplot(4,1,1)
     plt.plot(t, res, linewidth='2')
-    plt.ylabel("Norm of residual")
+    plt.ylabel("Residual")
 
-    plt.subplot(3,1,2)
+    plt.subplot(4,1,2)
+    plt.plot(t, Vdot, linewidth='2')
+    plt.axhline(0,linestyle='dashed', color='grey')
+    plt.ylabel("Vdot")
+
+    plt.subplot(4,1,3)
     plt.plot(t, V, linewidth='2')
     plt.ylabel("Storage Function")
 
-    plt.subplot(3,1,3)
+    plt.subplot(4,1,4)
     plt.plot(t, err, linewidth='2')
     plt.ylabel("Output Error")
     plt.xlabel("time (s)")

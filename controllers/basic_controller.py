@@ -43,9 +43,10 @@ class BasicController(LeafSystem):
         self.V = 0
         self.err = 0
         self.res = 0
+        self.Vdot = 0
         self.DeclareVectorOutputPort(
                 "output_metrics",
-                BasicVector(3),
+                BasicVector(4),
                 self.SetLoggingOutputs)
 
         # Handle whether or not we're communicating with a real robot and/or simulator
@@ -279,7 +280,7 @@ class BasicController(LeafSystem):
             pd_tilde'*pd_tilde.
 
         """
-        output.SetFromVector(np.asarray([self.V,self.err,self.res]))
+        output.SetFromVector(np.asarray([self.V,self.err,self.res,self.Vdot]))
 
 
     def DoSetControlTorques(self, context, output):

@@ -229,5 +229,6 @@ class IDController(BasicController):
                              p_body - p_body_nom,
                              p_s.flatten() - p_s_nom.flatten()])
         self.err = x_tilde.T@x_tilde
+        self.res = result.get_solver_details().primal_res
     
         return tau

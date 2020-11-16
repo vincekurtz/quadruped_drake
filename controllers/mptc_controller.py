@@ -199,14 +199,8 @@ class MPTCController(BasicController):
         p_lh, J_lh, Jdv_lh = self.CalcFramePositionQuantities(self.lh_foot_frame)
         p_rh, J_rh, Jdv_rh = self.CalcFramePositionQuantities(self.rh_foot_frame)
        
-        Jd_lf = self.CalcFrameJacobianDot(self.lf_foot_frame_autodiff)   # Note: this requires 
-        Jd_rf = self.CalcFrameJacobianDot(self.rf_foot_frame_autodiff)   # autodiff and is slow.
-        Jd_lh = self.CalcFrameJacobianDot(self.lh_foot_frame_autodiff)
-        Jd_rh = self.CalcFrameJacobianDot(self.rh_foot_frame_autodiff)
-
         p_feet = np.array([p_lf, p_rf, p_lh, p_rh]).reshape(4,3)
         J_feet = np.array([J_lf, J_rf, J_lh, J_rh])
-        Jd_feet = np.array([Jd_lf, Jd_rf, Jd_lh, Jd_rh])
         Jdv_feet = np.array([Jdv_lf, Jdv_rf, Jdv_lh, Jdv_rh])
         pd_feet = J_feet@v
 
@@ -217,8 +211,18 @@ class MPTCController(BasicController):
         Jdv_c = Jdv_feet[contact_feet]
         
         J_s = J_feet[swing_feet]
-        Jd_s = Jd_feet[swing_feet]
         Jdv_s = Jdv_feet[swing_feet]
+
+        Jd_s = []         # Only compute JacobianDot for swing feet, 
+                          # since this is slow (b/c autodiff)
+        if swing_feet[0]:
+            Jd_s.append(self.CalcFrameJacobianDot(self.lf_foot_frame_autodiff))
+        if swing_feet[1]:
+            Jd_s.append(self.CalcFrameJacobianDot(self.rf_foot_frame_autodiff))
+        if swing_feet[2]:
+            Jd_s.append(self.CalcFrameJacobianDot(self.lh_foot_frame_autodiff))
+        if swing_feet[3]:
+            Jd_s.append(self.CalcFrameJacobianDot(self.rh_foot_frame_autodiff))
 
         # Additional task-space dynamics terms
         if any(swing_feet):

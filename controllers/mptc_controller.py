@@ -1,11 +1,12 @@
 from controllers.basic_controller import *
 
-class PassivityController(BasicController):
+class MPTCController(BasicController):
     """
-    A passivity/approximate simulation-based whole-body controller. 
+    A task-space passivity-based whole-body controller, via 
+    http://www.roboticsproceedings.org/rss16/p077.pdf.
+
     Takes as input desired positions/velocities/accelerations of the 
-    feet, center-of-mass, and base frame orientation and computes
-    corresponding joint torques. 
+    feet and floating base and computes corresponding joint torques. 
     """
     def __init__(self, plant, dt, use_lcm=False):
         BasicController.__init__(self, plant, dt, use_lcm=use_lcm)
@@ -19,50 +20,41 @@ class PassivityController(BasicController):
         self.mu = 0.7
 
         # Choose a solver
-        self.solver = GurobiSolver()
+        #self.solver = GurobiSolver()
+        self.solver = OsqpSolver()
 
         # Storage function for numerically computing Jbar
         self.last_Jbar = None
         self.last_contact_feet = None
 
-    def AddJacobianTypeCost(self, J, qdd, Jd_qd, xdd_des, weight=1.0):
+    def AddTaskForceCost(self, Jbar, f_des, S, tau, J_c, f_c, W):
         """
         Add a quadratic cost of the form
 
-            weight * || J*qdd + Jd_qd - xdd_des ||^2
+            1/2 * (f - f_des)' * W * (f - f_des)
 
-        to the whole-body controller QP.
-        """
-        # Put in the form 1/2*qdd'*Q*qdd + c'*qdd for fast formulation
-        Q = weight*np.dot(J.T,J)
-        c = weight*(np.dot(Jd_qd.T,J) - np.dot(xdd_des.T,J)).T
+        to the whole-body QP, where
 
-        return self.mp.AddQuadraticCost(Q,c,qdd)
-
-    def AddGeneralizedForceCost(self, tau_nom, S, tau, J_c, f_c, weight=1.0):
-        """
-        Add a cost which attempts to track the given generalized force
-        tau_nom with applied control torques tau and contact forces f_c,
-
-            weight * || tau_nom - S'*tau + J_c'*f_c ||^2
-
-        to the whole-body QP.
+            f = Jbar'(S'tau + J_c'f_c) are task-space forces
+            f_nom are nominal task-space forces
+            W >= 0 is a weighting matrix
         """
         # Stack J_c, f_c 
         if len(f_c) > 0:
-            f = np.vstack(f_c)
-            J = np.vstack(J_c)
+            fc = np.vstack(f_c)
+            Jc = np.vstack(J_c)
         else:
-            f = np.zeros((0,1))
-            J = np.zeros((0,self.plant.num_velocities()))
+            fc = np.zeros((0,1))
+            Jc = np.zeros((0,self.plant.num_velocities()))
 
         # Put in the form 1/2*x'*Q*x + c'*x for fast formulation
-        x = np.vstack([tau,f])
-        A = np.hstack([S.T,J.T])
-        Q = weight*A.T@A
-        c = -weight*A.T@tau_nom
+        U = np.hstack([S.T,Jc.T])
+        x = np.vstack([tau, fc])
+        
+        Q = U.T@Jbar@W@Jbar.T@U
+        c = -f_des@W@Jbar.T@U
 
-        return self.mp.AddQuadraticCost(Q,c,x)
+        return self.mp.AddQuadraticCost(Q, c, x)
 
     def AddJacobianTypeConstraint(self, J, qdd, Jd_qd, xdd_des):
         """
@@ -121,7 +113,7 @@ class PassivityController(BasicController):
 
             J_c[j]*vd + Jdv_c[j] == -Kd*J_c[j]*v
         """
-        Kd = 150*np.eye(3)
+        Kd = 10*np.eye(3)
 
         num_contacts = len(J_c)
         for j in range(num_contacts):
@@ -130,53 +122,35 @@ class PassivityController(BasicController):
 
             constraint = self.AddJacobianTypeConstraint(J_c[j], vd, Jdv_c[j], pdd_des)
 
-    def AddVdotConstraint(self, tau, f_c, delta, qd_tilde, S, J_c, M, Cv, tau_g, qdd_des, p_tilde, v_tilde, Kp, C):
-        """
-        Add a constraint
-
-            Vdot <= delta
-        
-        which ensures that the simulation fuction
-
-            V = 1/2qd_tilde'*M*qd_tilde + p_tilde'*Kp*p_tilde
-
-        is decreasing. 
-        """
-        # Stack J_c, f_c 
-        if len(f_c) > 0:
-            f = np.vstack(f_c)
-            J = np.vstack(J_c)
-        else:
-            f = np.zeros((0,1))
-            J = np.zeros((0,self.plant.num_velocities()))
-
-        # We'll formulate as lb <= Ax <= ub, where x=[tau, f_c, delta]'
-        x = np.vstack([tau,f,delta])
-        A = (qd_tilde.T @ np.hstack([S.T, J.T]))[np.newaxis]
-        A = np.hstack([A, -np.eye(1)])
-        
-        ub = qd_tilde.T @ (M@qdd_des + Cv + tau_g) - p_tilde.T@Kp@v_tilde \
-                - qd_tilde.T@C@qd_tilde
-        ub *= np.ones(1)
-        
-        lb = -np.inf*np.ones(1)
-
-        return self.mp.AddLinearConstraint(A=A,lb=lb,ub=ub,vars=x)
-
     def ControlLaw(self, context, q, v):
+        """
+        A MPTC (Modular Passive Tracking Controller) whole-body QP-based controller.
+
+           minimize:
+               w_body* || f_body - f_body_des ||^2 +
+               w_foot* || f_foot - f_foot_des ||^2 +
+           subject to:
+                M*vd + Cv + tau_g = S'*tau + sum(J'*f)
+                f \in friction cones
+                J_cj*vd + Jd_cj*v == 0
+
+        where desired task-space forces are given by 
+
+          f_des = Lambda*xdd_nom + Lambda*Q*(v - Jbar*x_tilde) + f_g - Kp*x_tilde - Kd*x_tilde
+
+        """
         ######### Tuning Parameters #########
-        Kp_body_p = 500.0
-        Kd_body_p = 50.0
+        Kp_body_p = 100.0
+        Kd_body_p = 10.0
 
         Kp_body_rpy = Kp_body_p
         Kd_body_rpy = Kd_body_p
 
-        Kp_foot = 100.0
+        Kp_foot = 200.0
         Kd_foot = 20.0
 
         w_body = 10.0
         w_foot = 1.0
-        w_Vdot = 1.0
         #####################################
        
         # Compute Dynamics Quantities
@@ -209,7 +183,9 @@ class PassivityController(BasicController):
 
         # Get robot's actual task-space (body pose + foot positions) data
         X_body, J_body, Jdv_body = self.CalcFramePoseQuantities(self.body_frame)
-
+        Jd_body = np.zeros(J_body.shape)  # This is true because the body frame is
+                                          # the same as the floating base in q, v
+        
         p_body = X_body.translation()
         pd_body = (J_body@v)[3:]
 
@@ -222,9 +198,15 @@ class PassivityController(BasicController):
         p_rf, J_rf, Jdv_rf = self.CalcFramePositionQuantities(self.rf_foot_frame)
         p_lh, J_lh, Jdv_lh = self.CalcFramePositionQuantities(self.lh_foot_frame)
         p_rh, J_rh, Jdv_rh = self.CalcFramePositionQuantities(self.rh_foot_frame)
+       
+        Jd_lf = self.CalcFrameJacobianDot(self.lf_foot_frame_autodiff)   # Note: this requires 
+        Jd_rf = self.CalcFrameJacobianDot(self.rf_foot_frame_autodiff)   # autodiff and is slow.
+        Jd_lh = self.CalcFrameJacobianDot(self.lh_foot_frame_autodiff)
+        Jd_rh = self.CalcFrameJacobianDot(self.rh_foot_frame_autodiff)
 
         p_feet = np.array([p_lf, p_rf, p_lh, p_rh]).reshape(4,3)
         J_feet = np.array([J_lf, J_rf, J_lh, J_rh])
+        Jd_feet = np.array([Jd_lf, Jd_rf, Jd_lh, Jd_rh])
         Jdv_feet = np.array([Jdv_lf, Jdv_rf, Jdv_lh, Jdv_rh])
         pd_feet = J_feet@v
 
@@ -232,106 +214,67 @@ class PassivityController(BasicController):
         pd_s = pd_feet[swing_feet]
 
         J_c = J_feet[contact_feet]
-        J_s = J_feet[swing_feet]
         Jdv_c = Jdv_feet[contact_feet]
+        
+        J_s = J_feet[swing_feet]
+        Jd_s = Jd_feet[swing_feet]
         Jdv_s = Jdv_feet[swing_feet]
 
-        # Task-space (base frame plus any swing feet) Jacobian and related
+        # Additional task-space dynamics terms
         if any(swing_feet):
             J = np.vstack([J_body, np.vstack(J_s)])
+            Jd = np.vstack([Jd_body, np.vstack(Jd_s)])
             Jdv = np.hstack([Jdv_body, np.vstack(Jdv_s).flatten()])
         else:
             J = J_body
+            Jd = Jd_body
             Jdv = Jdv_body
+
+        Minv = np.linalg.inv(M)
+        Lambda = np.linalg.inv(J@Minv@J.T)
+        Jbar = Minv@J.T@Lambda
+        Q = J@Minv@C - Jd
         
-        Jbar = J.T@np.linalg.inv(J@J.T)   # Jacobian pseudoinverse
+        # Task-space states and errors
+        x = np.hstack([rpy_body, p_body, p_s.flatten()])
+        xd = np.hstack([RPY_body.CalcAngularVelocityInParentFromRpyDt(rpyd_body),
+                        pd_body,
+                        pd_s.flatten()])
 
-        if context.get_time() > 0 and (self.last_contact_feet == contact_feet):
-            # Time derivative of jacobian pseudoinverse
-            Jbar_dot = (Jbar - self.last_Jbar)/self.dt
-        else:
-            Jbar_dot = np.zeros(Jbar.shape)
-        self.last_Jbar = Jbar
-        self.last_contact_feet = contact_feet
+        x_nom = np.hstack([rpy_body_nom, p_body_nom, p_s_nom.flatten()])
+        xd_nom = np.hstack([RPY_body.CalcAngularVelocityInParentFromRpyDt(rpyd_body_nom),
+                            pd_body_nom,
+                            pd_s_nom.flatten()])
+        xdd_nom = np.hstack([RPY_body.CalcAngularVelocityInParentFromRpyDt(rpydd_body_nom),
+                             pdd_body_nom, 
+                             pdd_s_nom.flatten()])
 
-        # Error terms: p_tilde, v_tilde, qd_tilde
-        p_tilde = np.hstack([ rpy_body - rpy_body_nom,
-                              p_body - p_body_nom,
-                              p_s.flatten() - p_s_nom.flatten()
-                            ])
-        
-        v_tilde = np.hstack([ RPY_body.CalcAngularVelocityInParentFromRpyDt(rpyd_body - rpyd_body_nom),
-                              pd_body - pd_body_nom,
-                              pd_s.flatten() - pd_s_nom.flatten()
-                            ])
+        x_tilde = x - x_nom
+        xd_tilde = xd - xd_nom
 
-        qd_tilde = Jbar@v_tilde 
-
-        # Feed-forward terms: pd_nom, pdd_nom, qd_des, qdd_des
-        pd_nom = np.hstack([ RPY_body.CalcAngularVelocityInParentFromRpyDt(rpyd_body_nom),
-                             pd_body_nom, 
-                             pd_s_nom.flatten()
-                           ])
-        pdd_nom = np.hstack([ RPY_body.CalcAngularVelocityInParentFromRpyDt(rpydd_body_nom),
-                              pdd_body_nom, 
-                              pdd_s_nom.flatten()
-                           ])
-       
-        qd_des = Jbar@pd_nom
-        qdd_des = Jbar_dot@pd_nom + Jbar@pdd_nom
-        
-        # Construct matrix version of task-space PD gains
+        # Feedback gain and weighting matrices
         nf = 3*sum(swing_feet)   # there are 3 foot-related variables (x,y,z positions) for each swing foot
+       
         Kp = np.block([[ np.kron(np.diag([Kp_body_rpy, Kp_body_p]),np.eye(3)), np.zeros((6,nf))   ],
                        [ np.zeros((nf,6)),                                     Kp_foot*np.eye(nf) ]])
+        
         Kd = np.block([[ np.kron(np.diag([Kd_body_rpy, Kd_body_p]),np.eye(3)), np.zeros((6,nf))   ],
                        [ np.zeros((nf,6)),                                     Kd_foot*np.eye(nf) ]])
 
-        # Compute interface
-        tau_nom = M@qdd_des + C@qd_des + tau_g - J.T@(Kp@p_tilde + Kd@v_tilde)
+        W = np.diag(np.hstack([w_body*np.ones(6),w_foot*np.ones(nf)]))
 
-        # Set up and solve the MP
-        #   minimize:
-        #       w_body* || J_body*vd + Jd_body*v - vd_body_des ||^2 +
-        #       w_foot* || J_s*vd+ Jd_s*v - pdd_s_des ||^2 +
-        #       w_V * delta
-        #   subject to:
-        #        M*vd + Cv + tau_g = S'*tau + sum(J'*f)
-        #        f \in friction cones
-        #        J_cj*vd + Jd_cj*v == 0
-        #        Vdot <= delta
-        #        delta <= 0
+        # Desired task-space forces
+        f_des = Lambda@xdd_nom + Lambda@Q@(v-Jbar@xd_tilde) + Jbar.T@tau_g - Kp@x_tilde - Kd@xd_tilde
 
+        # Set up and solve the QP
         self.mp = MathematicalProgram()
         
         vd = self.mp.NewContinuousVariables(self.plant.num_velocities(), 1, 'vd')
         tau = self.mp.NewContinuousVariables(self.plant.num_actuators(), 1, 'tau')
         f_c = [self.mp.NewContinuousVariables(3,1,'f_%s'%j) for j in range(num_contact)]
-        delta = self.mp.NewContinuousVariables(1,1,'delta')
 
-        # min || J_body*vd + Jd_body*v - pdd_body_des \|^2
-        pdd_body_des = pdd_body_nom - Kp_body_p*(p_body - p_body_nom) - Kd_body_p*(pd_body - pd_body_nom)
-        rpydd_body_des = rpydd_body_nom - Kp_body_rpy*(rpy_body - rpy_body_nom) - Kd_body_rpy*(rpyd_body - rpyd_body_nom)
-        omegad_body_des = RPY_body.CalcAngularVelocityInParentFromRpyDt(rpydd_body_des)
-        vd_body_des = np.hstack([omegad_body_des,pdd_body_des])   # desired spatial acceleration of the body
-        self.AddJacobianTypeCost(J_body, vd, Jdv_body, vd_body_des, weight=w_body)
-
-        # min || J_s*vd+ Jd_s*v - pdd_s_des ||^2
-        pdd_s_des = pdd_s_nom  - Kp_foot*(p_s - p_s_nom) - Kd_foot*(pd_s - pd_s_nom)
-        for i in range(num_swing):
-            self.AddJacobianTypeCost(J_s[i], vd, Jdv_s[i], pdd_s_des[i], weight=w_foot)
-        
-        # min delta
-        self.mp.AddCost(w_Vdot*delta[0,0])
-        
-        # s.t. Vdot <= delta
-        self.AddVdotConstraint(tau, f_c, delta, qd_tilde, S, J_c, M, Cv, tau_g, 
-                                qdd_des, p_tilde, v_tilde, Kp, C)
-
-        # s.t. delta <= 0
-        vdot_max = 0
-        vdot_min = -np.inf
-        self.mp.AddLinearConstraint(A=np.eye(1),lb=vdot_min*np.eye(1),ub=vdot_max*np.eye(1),vars=delta)
+        # min 1/2*(f-f_des)'*W*(f-f_des)
+        self.AddTaskForceCost(Jbar, f_des, S, tau, J_c, f_c, W)
 
         # s.t.  M*vd + Cv + tau_g = S'*tau + sum(J_c[j]'*f_c[j])
         self.AddDynamicsConstraint(M, vd, Cv, tau_g, S, tau, J_c, f_c)
@@ -344,12 +287,11 @@ class PassivityController(BasicController):
             self.AddContactConstraint(J_c, vd, Jdv_c, v)
 
         # Set quantities for logging
-        self.V = 0.5*qd_tilde.T@M@qd_tilde + p_tilde.T@Kp@p_tilde 
-        self.V *= 1/20  # scale V for easier visualization
-        self.err = p_tilde.T@p_tilde
+        self.V = 0.5*xd_tilde.T@Lambda@xd_tilde + 0.5*x_tilde.T@Kp@x_tilde 
+        self.err = x_tilde.T@x_tilde
 
         result = self.solver.Solve(self.mp)
         assert result.is_success()
         tau = result.GetSolution(tau)
-    
+
         return tau

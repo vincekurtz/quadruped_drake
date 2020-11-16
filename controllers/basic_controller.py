@@ -3,6 +3,7 @@ from pydrake.all import *
 
 import lcm
 from lcm_types.cheetahlcm import robot_state_control_lcmt
+from helpers import jacobian2
 
 class BasicController(LeafSystem):
     """
@@ -67,6 +68,7 @@ class BasicController(LeafSystem):
         self.rh_foot_frame = self.plant.GetFrameByName("RH_FOOT")  # right hind
         
         self.world_frame_autodiff = self.plant_autodiff.world_frame()
+        self.body_frame_autodiff = self.plant_autodiff.GetFrameByName("body")
         self.lf_foot_frame_autodiff = self.plant_autodiff.GetFrameByName("LF_FOOT")
         self.rf_foot_frame_autodiff = self.plant_autodiff.GetFrameByName("RF_FOOT")
         self.lh_foot_frame_autodiff = self.plant_autodiff.GetFrameByName("LH_FOOT")
@@ -193,7 +195,7 @@ class BasicController(LeafSystem):
 
     def CalcFrameJacobianDot(self, frame):
         """
-        Compute the time derivative of the given frame's Jacobian (Jd)
+        Compute the time derivative of the given frame's position Jacobian (Jd)
         directly using autodiff. 
 
         Note that `frame` must be an autodiff type frame. 
@@ -209,11 +211,34 @@ class BasicController(LeafSystem):
             return self.plant_autodiff.CalcJacobianTranslationalVelocity(self.context_autodiff,
                                                                          JacobianWrtVariable.kV,
                                                                          frame,
-                                                                         np.array([0,0,0]),
+                                                                         np.zeros(3,),
                                                                          self.world_frame_autodiff,
                                                                          self.world_frame_autodiff)
-        # TODO: there seems to be a bug here with the jacobian computation
-        Jd = jacobian(J_fcn,q)@self.plant.MapVelocityToQDot(self.context,v)
+        Jd = jacobian2(J_fcn,q)@self.plant.MapVelocityToQDot(self.context,v)
+        return Jd
+    
+    def CalcFramePoseJacobianDot(self, frame):
+        """
+        Compute the time derivative of the given frame's pose Jacobian (Jd)
+        directly using autodiff. 
+
+        Note that `frame` must be an autodiff type frame. 
+
+        Assumes that self.context has been set properly. 
+        """
+        q = self.plant.GetPositions(self.context)
+        v = self.plant.GetVelocities(self.context)
+
+        def J_fcn(q):
+            self.plant_autodiff.SetPositions(self.context_autodiff, q)
+            self.plant_autodiff.SetVelocities(self.context_autodiff, v)
+            return self.plant_autodiff.CalcJacobianSpatialVelocity(self.context_autodiff,
+                                                                   JacobianWrtVariable.kV,
+                                                                   frame,
+                                                                   np.zeros(3,),
+                                                                   self.world_frame_autodiff,
+                                                                   self.world_frame_autodiff)
+        Jd = jacobian2(J_fcn,q)@self.plant.MapVelocityToQDot(self.context,v)
         return Jd
     
     def CalcFramePoseQuantities(self, frame):

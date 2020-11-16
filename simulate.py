@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from pydrake.all import *
-from controllers import PassivityController, InverseDynamicsController, BasicController
+from controllers import MPTCController, IDController, BasicController
 from planners import BasicTrunkPlanner, TowrTrunkPlanner
 import os
 import sys
@@ -11,10 +11,11 @@ show_trunk_model = True
 use_lcm = False
 
 planning_method = "towr"       # "towr" or "basic"
-control_method = "ID"   # P = Passivity, ID = Inverse Dynamics, B = Basic, 
+control_method = "MPTC"   # MPTC = Standard Passivity, ID = Inverse Dynamics, B = Basic PD, 
 
 sim_time = 6.0
 dt = 5e-3
+target_realtime_rate = 1.0
 
 show_diagram = False
 make_plots = True
@@ -101,9 +102,9 @@ else:
 if control_method == "B":
     controller = builder.AddSystem(BasicController(plant,dt,use_lcm=use_lcm))
 elif control_method == "ID":
-    controller = builder.AddSystem(InverseDynamicsController(plant,dt,use_lcm=use_lcm))
-elif control_method == "P":
-    controller = builder.AddSystem(PassivityController(plant,dt,use_lcm=use_lcm))
+    controller = builder.AddSystem(IDController(plant,dt,use_lcm=use_lcm))
+elif control_method == "MPTC":
+    controller = builder.AddSystem(MPTCController(plant,dt,use_lcm=use_lcm))
 else:
     print("Invalid control method %s" % control_method)
     sys.exit(1)
@@ -155,7 +156,7 @@ if use_lcm:
     # new messages as fast as possible
     simulator.set_target_realtime_rate(0.0)
 else:
-    simulator.set_target_realtime_rate(1.0)
+    simulator.set_target_realtime_rate(target_realtime_rate)
 
 # Set initial states
 plant_context = diagram.GetMutableSubsystemContext(plant, diagram_context)

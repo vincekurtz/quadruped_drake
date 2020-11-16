@@ -1,11 +1,11 @@
 from controllers.basic_controller import *
 
-class InverseDynamicsController(BasicController):
+class IDController(BasicController):
     """
-    A standard QP-based controller. Takes as input desired
-    positions/velocities/accelerations of the feet, center-of-mass,
-    and base frame orientation and solves a standard QP to compute
-    corresponding joint torques. 
+    A standard QP-based inverse dynamics controller. 
+
+    Takes as input desired positions/velocities/accelerations of the 
+    feet and floating base and computes corresponding joint torques. 
     """
     def __init__(self, plant, dt, use_lcm=False):
         BasicController.__init__(self, plant, dt, use_lcm=use_lcm)
@@ -19,7 +19,8 @@ class InverseDynamicsController(BasicController):
         self.mu = 0.7
 
         # Choose a solver
-        self.solver = GurobiSolver()
+        #self.solver = GurobiSolver()
+        self.solver = OsqpSolver()
     
     def AddJacobianTypeCost(self, J, qdd, Jd_qd, xdd_des, weight=1.0):
         """
@@ -100,6 +101,18 @@ class InverseDynamicsController(BasicController):
             constraint = self.AddJacobianTypeConstraint(J_c[j], vd, Jdv_c[j], pdd_des)
 
     def ControlLaw(self, context, q, v):
+        """
+        A standard inverse dynamics whole-body QP:
+
+           minimize:
+               w_body* || J_body*vd + Jd_body*v - vd_body_des ||^2 +
+               w_foot* || J_s*vd+ Jd_s*v - pdd_s_des ||^2
+           subject to:
+                M*vd + Cv + tau_g = S'*tau + sum(J'*f)
+                f \in friction cones
+                J_cj*vd + Jd_cj*v == 0
+        """
+
         ######### Tuning Parameters #########
         Kp_body_p = 500.0
         Kd_body_p = 50.0
@@ -184,14 +197,6 @@ class InverseDynamicsController(BasicController):
                                - Kd_foot*(pd_s - pd_s_nom)
 
         # Set up the QP
-        #   minimize:
-        #       w_body* || J_body*vd + Jd_body*v - vd_body_des ||^2 +
-        #       w_foot* || J_s*vd+ Jd_s*v - pdd_s_des ||^2
-        #   subject to:
-        #        M*vd + Cv + tau_g = S'*tau + sum(J'*f)
-        #        f \in friction cones
-        #        J_cj*vd + Jd_cj*v == 0
-
         self.mp = MathematicalProgram()
         
         vd = self.mp.NewContinuousVariables(self.plant.num_velocities(), 1, 'vd')
@@ -220,9 +225,9 @@ class InverseDynamicsController(BasicController):
         tau = result.GetSolution(tau)
 
         # Set error for logging
-        p_tilde = np.hstack([rpy_body - rpy_body_nom,
+        x_tilde = np.hstack([rpy_body - rpy_body_nom,
                              p_body - p_body_nom,
                              p_s.flatten() - p_s_nom.flatten()])
-        self.err = p_tilde.T@p_tilde
+        self.err = x_tilde.T@x_tilde
     
         return tau

@@ -147,7 +147,7 @@ class MPTCController(BasicController):
         Kd_body_rpy = Kd_body_p
 
         Kp_foot = 200.0
-        Kd_foot = 10.0
+        Kd_foot = 20.0
 
         w_body = 10.0
         w_foot = 1.0
@@ -298,7 +298,7 @@ class MPTCController(BasicController):
         # Set quantities for logging
         self.V = 0.5*xd_tilde.T@Lambda@xd_tilde + 0.5*x_tilde.T@Kp@x_tilde 
         self.err = x_tilde.T@x_tilde
-        self.res = result.get_solver_details().primal_res
+        #self.res = result.get_solver_details().primal_res   # OSQP only
         
         fc = np.hstack([result.GetSolution(f) for f in f_c])
         Jc = np.vstack(J_c)

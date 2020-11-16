@@ -68,7 +68,7 @@ class PCController(MPTCController):
         Kd_body_rpy = Kd_body_p
 
         Kp_foot = 200.0
-        Kd_foot = 10.0
+        Kd_foot = 20.0
 
         w_body = 10.0
         w_foot = 1.0
@@ -207,6 +207,15 @@ class PCController(MPTCController):
         # min w_Vdot*delta
         self.mp.AddCost(w_Vdot*delta[0])
 
+        # min w_Vdot* || delta - Vdot_nom ||^2
+        #Vdot_nom = (-xd_tilde.T@Kd@xd_tilde)*np.eye(1)
+        #self.mp.AddQuadraticErrorCost(Q=w_Vdot*np.eye(1),
+        #                              x_desired = Vdot_nom,
+        #                              vars=delta)
+
+        # min w_Vdot* || delta ||^2
+        #self.mp.AddCost(w_Vdot*delta.T@delta)
+
         # s.t.  M*vd + Cv + tau_g = S'*tau + sum(J_c[j]'*f_c[j])
         self.AddDynamicsConstraint(M, vd, Cv, tau_g, S, tau, J_c, f_c)
 
@@ -234,7 +243,7 @@ class PCController(MPTCController):
         # Set quantities for logging
         self.V = 0.5*xd_tilde.T@Lambda@xd_tilde + 0.5*x_tilde.T@Kp@x_tilde 
         self.err = x_tilde.T@x_tilde
-        self.res = result.get_solver_details().primal_res
+        #self.res = result.get_solver_details().primal_res   # OSQP only
         
         fc = np.hstack([result.GetSolution(f) for f in f_c])
         Jc = np.vstack(J_c)

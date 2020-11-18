@@ -203,7 +203,7 @@ class IDController(BasicController):
         tau = self.mp.NewContinuousVariables(self.plant.num_actuators(), 1, 'tau')
         f_c = [self.mp.NewContinuousVariables(3,1,'f_%s'%j) for j in range(num_contact)]
 
-        # min || J_body*vd + Jd_body*v - pdd_body_des \|^2
+        # min || J_body*vd + Jd_body*v - pdd_body_des ||^2
         self.AddJacobianTypeCost(J_body, vd, Jdv_body, vd_body_des, weight=w_body)
 
         # min || J_s*vd+ Jd_s*v - pdd_s_des ||^2

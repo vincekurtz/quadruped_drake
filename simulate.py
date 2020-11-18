@@ -11,13 +11,14 @@ show_trunk_model = True
 use_lcm = False
 
 planning_method = "basic"   # "towr" or "basic"
-control_method = "MPTC"    # ID = Inverse Dynamics (standard QP), 
+control_method = "CLF"    # ID = Inverse Dynamics (standard QP), 
                            # B = Basic (simple joint-space PD), 
                            # MPTC = task-space passivity
                            # PC = passivity-constrained
+                           # CLF = control-lyapunov-function based
 
-sim_time = 2.0
-dt = 3e-3
+sim_time = 6.0
+dt = 5e-3
 target_realtime_rate = 1.0
 
 show_diagram = False
@@ -110,6 +111,8 @@ elif control_method == "MPTC":
     controller = builder.AddSystem(MPTCController(plant,dt,use_lcm=use_lcm))
 elif control_method == "PC":
     controller = builder.AddSystem(PCController(plant,dt,use_lcm=use_lcm))
+elif control_method == "CLF":
+    controller = builder.AddSystem(CLFController(plant,dt,use_lcm=use_lcm))
 else:
     print("Invalid control method %s" % control_method)
     sys.exit(1)

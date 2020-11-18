@@ -119,8 +119,8 @@ class BasicTrunkPlanner(LeafSystem):
 
         #self.SimpleStanding()
         #self.output_dict["p_body"] += np.array([0,0,0.05])
-        #self.OrientationTest(context.get_time())
-        self.EdgeTest()
+        self.OrientationTest(context.get_time())
+        #self.EdgeTest()
         #self.RaiseFoot(context.get_time())
 
     def SetGeometryOutputs(self, context, output):

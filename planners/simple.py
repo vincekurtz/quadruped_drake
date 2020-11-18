@@ -106,12 +106,21 @@ class BasicTrunkPlanner(LeafSystem):
             self.output_dict["contact_states"] = [True,False,True,True]
             self.output_dict["p_rf"] += np.array([ 0.0, 0.0, 0.1])
 
+    def EdgeTest(self):
+        """
+        Move the trunk right to the edge of feasibility, ensuring that
+        friction constraints become active (may require a smaller timestep)
+        """
+        self.SimpleStanding()
+        self.output_dict["p_body"] += np.array([-0.1, 0.063, 0.0])
+
     def SetTrunkOutputs(self, context, output):
         self.output_dict = output.get_mutable_value()
 
         #self.SimpleStanding()
         #self.output_dict["p_body"] += np.array([0,0,0.05])
-        self.OrientationTest(context.get_time())
+        #self.OrientationTest(context.get_time())
+        self.EdgeTest()
         #self.RaiseFoot(context.get_time())
 
     def SetGeometryOutputs(self, context, output):

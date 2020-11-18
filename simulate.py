@@ -10,14 +10,14 @@ import sys
 show_trunk_model = True
 use_lcm = False
 
-planning_method = "towr"   # "towr" or "basic"
+planning_method = "basic"   # "towr" or "basic"
 control_method = "MPTC"    # ID = Inverse Dynamics (standard QP), 
                            # B = Basic (simple joint-space PD), 
                            # MPTC = task-space passivity
                            # PC = passivity-constrained
 
-sim_time = 6.0
-dt = 5e-3
+sim_time = 2.0
+dt = 3e-3
 target_realtime_rate = 1.0
 
 show_diagram = False
@@ -186,22 +186,22 @@ if make_plots:
     Vdot = logger.data()[3,10:]
 
     plt.figure()
-    plt.subplot(4,1,1)
-    plt.plot(t, res, linewidth='2')
-    plt.ylabel("Residual")
+    #plt.subplot(4,1,1)
+    #plt.plot(t, res, linewidth='2')
+    #plt.ylabel("Residual")
 
-    plt.subplot(4,1,2)
+    plt.subplot(3,1,1)
     plt.plot(t, Vdot, linewidth='2')
     plt.axhline(0,linestyle='dashed', color='grey')
-    plt.ylabel("Vdot")
+    plt.ylabel("$\dot{V}$")
 
-    plt.subplot(4,1,3)
+    plt.subplot(3,1,2)
     plt.plot(t, V, linewidth='2')
-    plt.ylabel("Storage Function")
+    plt.ylabel("$V$")
 
-    plt.subplot(4,1,4)
+    plt.subplot(3,1,3)
     plt.plot(t, err, linewidth='2')
-    plt.ylabel("Output Error")
+    plt.ylabel("$\|y_1-y_2\|^2$")
     plt.xlabel("time (s)")
 
     plt.show()

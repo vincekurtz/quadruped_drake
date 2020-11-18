@@ -72,7 +72,7 @@ class PCController(MPTCController):
 
         w_body = 10.0
         w_foot = 1.0
-        w_Vdot = 0.0
+        w_Vdot = 0.00
         #####################################
        
         # Compute Dynamics Quantities
@@ -205,7 +205,7 @@ class PCController(MPTCController):
         self.AddTaskForceCost(Jbar, f_des, S, tau, J_c, f_c, W)
 
         # min w_Vdot*delta
-        self.mp.AddCost(w_Vdot*delta[0])
+        #self.mp.AddCost(w_Vdot*delta[0])
 
         # min w_Vdot* || delta - Vdot_nom ||^2
         #Vdot_nom = (-xd_tilde.T@Kd@xd_tilde)*np.eye(1)

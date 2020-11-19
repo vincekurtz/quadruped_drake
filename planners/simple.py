@@ -112,7 +112,7 @@ class BasicTrunkPlanner(LeafSystem):
         friction constraints become active (may require a smaller timestep)
         """
         self.SimpleStanding()
-        self.output_dict["p_body"] += np.array([-0.1, 0.063, 0.0])
+        self.output_dict["p_body"] += np.array([-0.1, 0.63, 0.0])
 
     def SetTrunkOutputs(self, context, output):
         self.output_dict = output.get_mutable_value()

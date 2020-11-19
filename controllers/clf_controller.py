@@ -11,21 +11,8 @@ class CLFController(IDController):
     def __init__(self, plant, dt, use_lcm=False):
         IDController.__init__(self, plant, dt, use_lcm=use_lcm)
 
-        # Solve CARE to determine candidate CLF eta'*P*eta
-        # TODO: consider changing size of eta
-        self.F = np.block([[np.zeros((6,6)), np.eye(6)      ],    # task-space dynamics
-                           [np.zeros((6,6)), np.zeros((6,6))]])   # eta_dot = F*eta + G*nu
-        self.G = np.block([[np.zeros((6,6))],                     # eta = [x_tilde, xd_tilde]
-                           [np.eye(6)]])                          # nu = xdd_tilde
-        
-        Q = 100*np.eye(12)
-        R = np.eye(6)
 
-        self.P = ContinuousAlgebraicRiccatiEquation(self.F,self.G,Q,R)
-
-        self.gamma = np.min(np.linalg.eigvals(Q)) / np.max(np.linalg.eigvals(self.P))
-
-    def AddVdotCost(self, x_tilde, xd_tilde, J, vd, weight=1):
+    def AddVdotCost(self, x_tilde, xd_tilde, P, G, J, vd, weight=1):
         """
         Add a cost penalizing the time derivative of the Lyapunov function
 
@@ -34,10 +21,10 @@ class CLFController(IDController):
         where eta = [x_tilde;xd_tilde]
         """
         eta = np.hstack([x_tilde,xd_tilde])
-        a = weight*2*eta.T@self.P@self.G@J
+        a = weight*2*eta.T @ P @ G @ J
         return self.mp.AddLinearCost(a,b=0.0,vars=vd)
 
-    def AddVdotConstraint(self, x_tilde, xd_tilde, J, vd, Jdv, xdd_nom, delta):
+    def AddVdotConstraint(self, x_tilde, xd_tilde, P, G, J, gamma, F, vd, Jdv, xdd_nom, delta):
         """
         Add a constraint Vdot <= -gamma*V + delta to the whole-body QP, where
             
@@ -46,13 +33,13 @@ class CLFController(IDController):
         and eta = [x_tilde;xd_tilde]
         """
         eta = np.hstack([x_tilde, xd_tilde])
-        V = eta.T@self.P@eta
+        V = eta.T@P@eta
 
         # We'll write as lb <= A*x <= ub
         lb = np.asarray(-np.inf).reshape(1,)
-        A = np.hstack([2*eta.T@self.P@self.G@J, -1])[np.newaxis]
+        A = np.hstack([2*eta.T@P@G@J, -1])[np.newaxis]
         x = np.vstack([vd,delta])
-        ub = -self.gamma*V - 2*eta.T@self.P@self.F@eta -2*eta.T@self.P@self.G@(Jdv - xdd_nom)
+        ub = -gamma*V - 2*eta.T@P@F@eta -2*eta.T@P@G@(Jdv - xdd_nom)
         ub = np.asarray(ub).reshape(1,)
 
         return self.mp.AddLinearConstraint(A=A,lb=lb,ub=ub,vars=x)
@@ -63,7 +50,7 @@ class CLFController(IDController):
         A CLF-QP whole-body controller
 
            minimize:
-               || J*vd + Jd*v - xd_nom ||^2 + Vdot
+               || J*vd + Jd*v - xd_nom ||^2 + Vdot + w_delta*delta^2
            subject to:
                 Vdot <= -gamma*V +delta
                 M*vd + Cv + tau_g = S'*tau + sum(J'*f)
@@ -76,19 +63,20 @@ class CLFController(IDController):
                 [xd_tilde]         [xd_tilde]
         """
         ######### Tuning Parameters #########
-        Kp_body_p = 100.0
-        Kd_body_p = 10.0
+        Q_body_p = 5000.0             # Lyapunov function is based on CARE solution
+        Q_body_pd = 200.0            # corresponding to LQR with running cost 
+                                      # eta'*Q*eta + nu'*R*nu
+        Q_body_rpy = Q_body_p
+        Q_body_rpyd = Q_body_pd
 
-        Kp_body_rpy = Kp_body_p
-        Kd_body_rpy = Kd_body_p
+        Q_foot_p = 200.0
+        Q_foot_pd = 20.0
 
-        Kp_foot = 200.0
-        Kd_foot = 20.0
+        r = 1.0
 
-        w_body = 10.0
-        w_foot = 1.0
+        w_delta = 1000
         #####################################
-       
+        
         # Compute Dynamics Quantities
         M, Cv, tau_g, S = self.CalcDynamics()
 
@@ -170,16 +158,34 @@ class CLFController(IDController):
 
         x_tilde = x - x_nom
         xd_tilde = xd - xd_nom
+        
+        eta = np.hstack([x_tilde,xd_tilde])
 
-        # Feedback gain and weighting matrices
+        # Cost matrices associated w/ infinite horizon cost sum_t eta'*Q*eta + nu'*R*nu
+        # where eta = [x_tilde, xd_tilde] and nu = xdd_tilde
+        m = len(x_tilde)
+        
         nf = 3*sum(swing_feet)   # there are 3 foot-related variables (x,y,z positions) for each swing foot
        
-        Kp = np.block([[ np.kron(np.diag([Kp_body_rpy, Kp_body_p]),np.eye(3)), np.zeros((6,nf))   ],
-                       [ np.zeros((nf,6)),                                     Kp_foot*np.eye(nf) ]])
+        Qp = np.block([[ np.kron(np.diag([Q_body_rpy, Q_body_p]),np.eye(3)), np.zeros((6,nf))   ],
+                       [ np.zeros((nf,6)),                                     Q_foot_p*np.eye(nf) ]])
         
-        Kd = np.block([[ np.kron(np.diag([Kd_body_rpy, Kd_body_p]),np.eye(3)), np.zeros((6,nf))   ],
-                       [ np.zeros((nf,6)),                                     Kd_foot*np.eye(nf) ]])
+        Qd = np.block([[ np.kron(np.diag([Q_body_rpyd, Q_body_pd]),np.eye(3)), np.zeros((6,nf))   ],
+                       [ np.zeros((nf,6)),                                     Q_foot_pd*np.eye(nf) ]])
 
+        Q = np.block([[ Qp,              np.zeros((m,m))],
+                      [ np.zeros((m,m)), Qd             ]])
+       
+        R = r*np.eye(m)
+        
+        # Solve CARE to determine candidate CLF eta'*P*eta
+        F = np.block([[np.zeros((m,m)), np.eye(m)      ],    # task-space dynamics
+                      [np.zeros((m,m)), np.zeros((m,m))]])   # eta_dot = F*eta + G*nu
+        G = np.block([[np.zeros((m,m))],                     # eta = [x_tilde, xd_tilde]
+                      [np.eye(m)]])                          # nu = xdd_tilde
+        
+        P = ContinuousAlgebraicRiccatiEquation(F,G,Q,R)
+        gamma = np.min(np.linalg.eigvals(Q)) / np.max(np.linalg.eigvals(P))
 
         # Set up and solve the QP
         self.mp = MathematicalProgram()
@@ -189,17 +195,21 @@ class CLFController(IDController):
         f_c = [self.mp.NewContinuousVariables(3,1,'f_%s'%j) for j in range(num_contact)]
         delta = self.mp.NewContinuousVariables(1,'delta')
 
-        # min || J*vd + Jd*v - xdd_nom ||^2
-        self.AddJacobianTypeCost(J, vd, Jdv, xdd_nom, weight=1.0)
+        # min || J*vd + Jd*v - xdd_des ||^2
+        xdd_des = xdd_nom - np.linalg.inv(R)@G.T@P@eta    # use optimal LQR feedback gains here
+        self.AddJacobianTypeCost(J, vd, Jdv, xdd_des, weight=1.0)
 
         # min Vdot
-        self.AddVdotCost(x_tilde, xd_tilde, J, vd, weight=1)
+        self.AddVdotCost(x_tilde, xd_tilde, P, G, J, vd, weight=1)
+
+        # min w_delta* delta^2
+        self.mp.AddCost(w_delta*delta.T@delta)
 
         # s.t. Vdot <= -gamma*V + delta
-        self.AddVdotConstraint(x_tilde, xd_tilde, J, vd, Jdv, xdd_nom, delta)
+        self.AddVdotConstraint(x_tilde, xd_tilde, P, G, J, gamma, F, vd, Jdv, xdd_nom, delta)
 
         # s.t. delta <= 0
-        self.mp.AddLinearConstraint( delta[0] <= 0 )
+        #self.mp.AddLinearConstraint( delta[0] <= 0 )
 
         # s.t.  M*vd + Cv + tau_g = S'*tau + sum(J_c[j]'*f_c[j])
         self.AddDynamicsConstraint(M, vd, Cv, tau_g, S, tau, J_c, f_c)
@@ -217,9 +227,8 @@ class CLFController(IDController):
         vd = result.GetSolution(vd)
 
         # Logging
-        eta = np.hstack([x_tilde,xd_tilde])
-        self.V = eta.T@self.P@eta
+        self.V = eta.T@P@eta
         self.err = x_tilde.T@x_tilde
-        self.Vdot = 2*eta.T@self.P@self.F@eta + 2*eta.T@self.P@self.G@(J@vd + Jdv - xdd_nom)
+        self.Vdot = 2*eta.T@P@F@eta + 2*eta.T@P@G@(J@vd + Jdv - xdd_nom)
 
         return tau

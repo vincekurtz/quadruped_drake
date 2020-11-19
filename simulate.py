@@ -10,7 +10,7 @@ import sys
 show_trunk_model = True
 use_lcm = False
 
-planning_method = "basic"   # "towr" or "basic"
+planning_method = "towr"   # "towr" or "basic"
 control_method = "CLF"    # ID = Inverse Dynamics (standard QP), 
                            # B = Basic (simple joint-space PD), 
                            # MPTC = task-space passivity

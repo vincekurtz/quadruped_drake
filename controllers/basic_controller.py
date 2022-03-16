@@ -334,9 +334,10 @@ class BasicController(LeafSystem):
         # Nominal joint angles
         q_nom = np.asarray([ 1.0, 0.0, 0.0, 0.0,     # base orientation
                              0.0, 0.0, 0.3,          # base position
-                             0.0, 0.0, 0.0, 0.0,     # ad/ab
-                            -0.8,-0.8,-0.8,-0.8,     # hip
-                             1.6, 1.6, 1.6, 1.6])    # knee
+                             0.0,-0.8, 1.6, 
+                             0.0,-0.8, 1.6, 
+                             0.0,-0.8, 1.6, 
+                             0.0,-0.8, 1.6])
         
         # Compute desired generalized forces
         q_err = self.plant.MapQDotToVelocity(self.context, q-q_nom)  # Need to use qd=N(q)*v here,

@@ -32,7 +32,7 @@ class IDController(BasicController):
         Q = weight*np.dot(J.T,J)
         c = weight*(np.dot(Jd_qd.T,J) - np.dot(xdd_des.T,J)).T
 
-        return self.mp.AddQuadraticCost(Q,c,qdd)
+        return self.mp.AddQuadraticCost(Q,c,qdd, is_convex=True)
 
     def AddJacobianTypeConstraint(self, J, qdd, Jd_qd, xdd_des):
         """

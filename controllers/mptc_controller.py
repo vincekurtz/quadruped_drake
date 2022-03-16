@@ -54,7 +54,7 @@ class MPTCController(BasicController):
         Q = U.T@Jbar@W@Jbar.T@U
         c = -f_des@W@Jbar.T@U
 
-        return self.mp.AddQuadraticCost(Q, c, x)
+        return self.mp.AddQuadraticCost(Q, c, x, is_convex=True)
 
     def AddJacobianTypeConstraint(self, J, qdd, Jd_qd, xdd_des):
         """

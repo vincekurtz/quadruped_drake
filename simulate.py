@@ -11,7 +11,7 @@ show_trunk_model = True
 use_lcm = False
 
 planning_method = "towr"   # "towr" or "basic"
-control_method = "CLF"    # ID = Inverse Dynamics (standard QP), 
+control_method = "ID"      # ID = Inverse Dynamics (standard QP), 
                            # B = Basic (simple joint-space PD), 
                            # MPTC = task-space passivity
                            # PC = passivity-constrained
@@ -22,7 +22,7 @@ dt = 5e-3
 target_realtime_rate = 1.0
 
 show_diagram = False
-make_plots = True
+make_plots = False
 
 #####################################################
 
@@ -139,11 +139,11 @@ builder.Connect(plant.get_state_output_port(),
                 controller.GetInputPort("quad_state"))
 
 # Add loggers
-logger = LogOutput(controller.GetOutputPort("output_metrics"),builder)
+logger = LogVectorOutput(controller.GetOutputPort("output_metrics"),builder)
 
 # Set up the Visualizer
 DrakeVisualizer().AddToBuilder(builder, scene_graph)
-ConnectContactResultsToDrakeVisualizer(builder, plant)
+ConnectContactResultsToDrakeVisualizer(builder, plant, scene_graph)
 
 # Compile the diagram: no adding control blocks from here on out
 diagram = builder.Build()
@@ -170,9 +170,10 @@ else:
 plant_context = diagram.GetMutableSubsystemContext(plant, diagram_context)
 q0 = np.asarray([ 1.0, 0.0, 0.0, 0.0,     # base orientation
                   0.0, 0.0, 0.3,          # base position
-                  0.0, 0.0, 0.0, 0.0,     # ad/ab
-                 -0.8,-0.8,-0.8,-0.8,     # hip
-                  1.6, 1.6, 1.6, 1.6])    # knee
+                  0.0,-0.8, 1.6, 
+                  0.0,-0.8, 1.6, 
+                  0.0,-0.8, 1.6, 
+                  0.0,-0.8, 1.6])
 qd0 = np.zeros(plant.num_velocities())
 plant.SetPositions(plant_context,q0)
 plant.SetVelocities(plant_context,qd0)
@@ -181,12 +182,14 @@ plant.SetVelocities(plant_context,qd0)
 simulator.AdvanceTo(sim_time)
 
 if make_plots:
+    log = logger.FindLog(diagram_context)
+
     # Plot stuff
-    t = logger.sample_times()[10:]
-    V = logger.data()[0,10:]   
-    err = logger.data()[1,10:]
-    res = logger.data()[2,10:]
-    Vdot = logger.data()[3,10:]
+    t = log.sample_times()[10:]
+    V = log.data()[0,10:]   
+    err = log.data()[1,10:]
+    res = log.data()[2,10:]
+    Vdot = log.data()[3,10:]
 
     plt.figure()
     #plt.subplot(4,1,1)

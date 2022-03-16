@@ -117,9 +117,9 @@ class BasicTrunkPlanner(LeafSystem):
     def SetTrunkOutputs(self, context, output):
         self.output_dict = output.get_mutable_value()
 
-        #self.SimpleStanding()
+        self.SimpleStanding()
         #self.output_dict["p_body"] += np.array([0,0,0.05])
-        self.OrientationTest(context.get_time())
+        #self.OrientationTest(context.get_time())
         #self.EdgeTest()
         #self.RaiseFoot(context.get_time())
 
